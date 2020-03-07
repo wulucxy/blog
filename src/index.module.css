@@ -1,0 +1,105 @@
+@import url('https://fonts.googleapis.com/css?family=Merriweather:400,400i,700,700i,900|Montserrat:900');
+
+:root {
+  --primary-color: #d23669;
+  --primary-color-light: rgb(255, 167, 196);
+}
+
+:global * {
+  box-sizing: border-box;
+}
+
+:global html {
+  color: rgba(0, 0, 0, 0.9);
+  font: 100%/1.75 Morriweather, Georgia, serif;
+}
+
+:global body {
+  font-kerning: normal;
+  font-family: 'Merriweather','Georgia',serif;
+  font-feature-settings: "kern", "liga", "clig", "calt";
+  font-weight: 400;
+  margin: 0;
+  padding: 0;
+  word-wrap: break-word;
+}
+
+:global(pre),
+:global(code) {
+  font-family: Consolas, Menlo, Monaco, source-code-pro, "Courier New", monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+:global blockquote{
+  margin: 0;
+}
+:global pre {
+  border-radius: 10px;
+  overflow: auto;
+  padding: 1em;
+}
+
+:global a {
+  color: var(--primary-color);
+}
+:global a:hover {
+  text-decoration: none;
+}
+
+:global p,
+:global pre,
+:global ul,
+:global ol {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+article img{
+  max-width: 100%;
+  height: auto;
+}
+
+article blockquote{
+  padding-left: 1em;
+  color: #646464;
+  font-style: italic;
+  border-left: 3px solid #D3D3D3;
+}
+
+table {
+  padding: 0;
+  border-collapse:collapse;
+}
+table tr {
+  border-top: 1px solid #cccccc;
+  background-color: white;
+  margin: 0;
+  padding: 0;
+}
+
+table tr:nth-child(2n) {
+  background-color: #f8f8f8;
+}
+
+table tr th {
+  font-weight: bold;
+  border: 1px solid #cccccc;
+  text-align: left;
+  margin: 0;
+  padding: 6px 13px;
+}
+
+table tr td {
+  border: 1px solid #cccccc;
+  text-align: left;
+  margin: 0;
+  padding: 6px 13px;
+}
+
+table tr th :first-child, table tr td :first-child {
+  margin-top: 0;
+}
+
+table tr th :last-child, table tr td :last-child {
+  margin-bottom: 0;
+}
