@@ -1,0 +1,395 @@
+## 目标
+
+1. 将中台配置通过服务化方式输出
+2. 结合业务组件库输出页面配置化能力
+
+### 业务架构
+
+![image](https://github.com/wulucxy/blog/tree/master/src/routes/secure/2020-02-10-conf-center/image/biz.png)
+
+### 业界方案
+
+- 百度 [amis](https://baidu.github.io/amis/pages/simple)，基于配置的低代码方案
+
+### 一期
+
+1. 打通 jasmine 配置存储
+2. 支持界面化模块、配置的 CRUD
+3. 用户权限
+
+### 二期
+
+1. 配置的历史记录，回滚，发布
+2. 自定义配置规则、灰度等
+3.  配置变更消息推送，日志
+4. 提供对外 api（是否共建？）、可用性
+
+## 名词解释
+
+#### 配置（config）
+
+业务系统运行过程中要使用的动态可变参数，由外部配置生成。
+
+### 资源
+
+应用中所使用的内容，资源内容是动态的，可以通过配置进行下发
+
+#### 配置后台
+
+用来维护配置的一套中后台系统，一期就是面向配置后台开发
+
+#### 配置api
+
+对外提供配置 api 服务，二期实现，考虑是否与消金共建？
+
+#### Jasmine【配置存储中心】
+​ 内部提供的配置存储中心，该服务仅支持缓存、分组【module、small module、config】和配置存储，对于配置存储的类型，配置的增量功能等无法支持。
+
+#### 业务应用（moduleName）
+
+基于 jasmine 的业务大类，例如理财、记账等
+
+####  子模块（sub module）
+
+基于 jasmine 服务对业务大类进行细分，子模块规定为具体的项目工程或独立业务划分。
+
+## 数据建表
+
+### 新建配置表（config）
+
+| 字段名   |  类型   |  描述  |   默认值  |   示例  |
+| --------   | -----  |  ----   | ----    |  ----   |
+|  id     |   INT(10) unsigned   |   主键     | 自增长 ID  |  1  |
+|   code   |   VARCHAR(50)     |   配置的唯一编码  |  |  dashboard_config_list   |
+|   config_key   |   VARCHAR(50)     |   配置最终存储在 jasmine 的key 值  |  |  trident_configKey_xby232   |
+|   name   |    VARCHAR(50)    |  配置名称  |    |  dashboard 配置名称    |
+|   app_id   |    INT(10)    |  应用 ID  |    |  trident    |
+|   group_id   |    INT(10)    |  组 ID  |    |  group    |
+|   name   |    VARCHAR(50)    |  配置名称  |    |  dashboard 配置名称    |
+|   version   |    INT    |  配置版本  |  0  |  1    |
+|   value   |    VARCHAR(2048)    |  配置初始值  |  ''  |    |
+|   creator   |   VARCHAR(20)    |  配置创建人  | |  qingtong |
+|   updator   |   VARCHAR(20)    |  配置更新人  | |  qingtong |
+|   status   |    TINYINT   |  配置状态（0：草稿，1：已发布 9：已失效）  |  0  |  0  |
+|   desc   |    VARCHAR(200)   | 配置描述  |  ''  |  这是一条配置  |
+|   created_time   | timestamp   |  创建时间  | current timestamp | |
+|   updated_time   | timestamp   |  更新时间  | current timestamp | |
+
+
+### 新建应用表（app）
+
+> jasmine 不支持单独定义 subModule，应用表放在 mysql 数据库维护。jasmine 提供一个固定的子模块名称。
+
+| 字段名   |  类型   |  描述  |   默认值  |   示例  |
+| --------   | -----  |  ----   | ----    |  ----   |
+|  id     |   INT(10) unsigned   |   主键     | 自增长 ID  |  1  |
+|   code   |   VARCHAR(50)     |  主键，应用唯一编码  |  |  trident_fe_config   |
+|   name   |    VARCHAR(50)    |  应用名称  |    |  trident 前端配置   |
+|   desc   |    VARCHAR(50)    |  应用描述  |    |  trident 前端配置   |
+|   creator   |   VARCHAR(20)    |  应用创建人  | |  qingtong |
+|   updator   |   VARCHAR(20)    |  应用更新人  | |  qingtong |
+|   created_time   | timestamp   |  创建时间  | current timestamp | |
+|   updated_time   | timestamp   |  更新时间  | current timestamp | |
+
+### 新建组表（group）
+
+> 应用的配置可以分组，一个分组下面可以有多个配置，但一个组只能属于一个应用
+
+| 字段名   |  类型   |  描述  |   默认值  |   示例  |
+| --------   | -----  |  ----   | ----    |  ----   |
+|  id     |   INT(10) unsigned   |   主键     | 自增长 ID  |  1  |
+|   code   |   VARCHAR(50)     |  主键，应用唯一编码  |  |  trident_group   |
+|   name   |    VARCHAR(50)    |  组名称  |    |  trident 用户组   |
+|   app_id   |    INT(10)   |  应用 Id  |    |   |
+|   creator   |   VARCHAR(20)    |  应用创建人  | |  qingtong |
+|   created_time   | timestamp   |  创建时间  | current timestamp | |
+|   updated_time   | timestamp   |  更新时间  | current timestamp | |
+
+### 新建配置版本表（record）
+
+| 字段名   |  类型   |  描述  |   默认值  |   示例  |
+| --------   | -----  |  ----   | ----    |  ----   |
+|  id     |   INT(10) unsigned   |   主键     | 自增长 ID  |  1  |
+|   config_code   |   VARCHAR(50)     |  对应的配置 code  |  |    |
+|   config_id   |   INT     |  对应的配置 code id  |  |    |
+|   type   |   TINYINT     |  对应的用户行为（0：新建，1. 编辑 2. 发布, 3. 草稿 9. 关闭）  |  |    |
+|   updator   |   VARCHAR(20)    |  配置更新人  | |  qingtong |
+|   created_time   | timestamp   |  创建时间  | current timestamp | |
+|   updated_time   | timestamp   |  更新时间  | current timestamp | |
+
+### 新建规则表（rule）：二期
+
+> 规则基于配置，可以通过动态方式来重写规则，考虑二期实现
+
+| 字段名   |  类型   |  描述  |   默认值  |   示例  |
+| --------   | -----  |  ----   | ----    |  ----   |
+|   id     |   INT(10) unsigned   |   主键     | 自增长 ID  |  1  |
+|   cid   |   INT     |  对应的配置 id  |  |    |
+|   name   |    VARCHAR(50)    |  规则名称  |    |      |
+|   value   |    VARCHAR(2048)    |  规则内容  |  ''  |    |
+|   updator   |   VARCHAR(20)    |  规则更新人  | |  qingtong |
+|   desc   |    VARCHAR(200)   | 规则描述  |  ''  |  这是一条规则  |
+
+## 权限设计
+
+1. 基于【权限系统】设计
+2. 发布权限
+
+## 架构图
+
+### 技术架构
+
+![image](https://github.com/wulucxy/blog/tree/master/src/routes/secure/2020-02-10-conf-center/image/tech.png)
+
+
+## 详细说明
+
+### 应用
+
+> 原则上每条业务线生成一个对应应用，一个应用可以有多个配置，而一个配置只能属于一个应用
+
+#### 权限设计（基于wups）
+
+|    |   管理员   |  开发者  |  
+| --------   | -----  |  ----   | 
+|  新建应用     |  ✓  |        |  
+|  编辑应用    |   ✓   |        |
+
+#### 注意事项
+
+- `jasmine` 不支持基于 `mainModule` 获取`subModule` 列表，所以 `jasmine` 上的模块都是静态的：
+  - mainModule：trinity
+  - subModule：trinity-config
+- 应用定义只存 mySql，不同步 `jasmine`
+- 同步配置时，`jasmine` 要求的 `cfgKey` 需要带上应用前缀 + 配置 code + 随机值
+
+### 配置
+
+#### 配置状态
+
+```
+DRAFT: 0, // 草稿
+CHECKING: 1, // 审核中(备用)
+CHECKED: 2, // 待发布（备用）
+PUBLISH: 3, // 已发布
+ABANDON: 9,
+```
+
+```
++---------------+     +------------+  publish   +------------+  update   +---------+
+| create config | --> | status = 0 | ---------> | status = 3 | --------> | jasmine |
++---------------+     +------------+            +------------+           +---------+
+                                                  |
+                                                  | 新建草稿
+                                                  v
+                                                ..............
+                                                : status = 9 :
+                                                :............:
+```
+
+> 1. 配置创建完毕需要同步 jasmine，这块逻辑详细参考 jasmine
+> 2. 未来可能增加不同的配置状态，比如已暂停等，所以保留中间的版本
+
+#### 不同配置对应操作
+
+|    |   草稿   |    发布  |   已关闭   | 
+| --------   | -----  |  ----   |  ----   | 
+|  发布     |  ✓  |        |       |
+|  编辑     |   ✓   |        |       |
+|  查看详情     |  ✓  |    ✓    |    ✓   |
+|  新建草稿     |    |    ✓    |       |
+|  查看历史    |    |    ✓    |   ✓    |
+
+#### 创建配置
+
+- 新建：用户手动创建，status 默认 为 0
+- 草稿：继承自现有配置，修改 id 和 status，注意此时和原有的配置的 code 是一样的
+- 以上两类都需要写入配置 record 表
+
+#### 发布配置
+
+只有发布后的配置才会生效
+
+- 新建配置点击发布后生效
+- 基于原有配置发布后需要将原配置更改为废弃模式，版本++
+- 发布后配置更新 config_key 字段来获取 jasmine 的对应的 key 值
+- 发布后的配置需要同步jasmine，参考 jas
+- 需要更新 record 表
+
+#### 关闭配置
+
+- 新建、草稿和发布模式都可以关闭配置，此时配置状态为已失效（status = 9）
+- 关闭后的配置可以查看历史记录
+- 需要更新 record 表
+
+#### 配置历史记录
+
+```
+// 配置操作记录
+const ACTIONTYPES = {
+  CONFIG_ADD: 0, // 新建配置
+  CONFIG_EDIT: 1, // 编辑配置
+  CONFIG_CHECK: 2, // 审核配置
+  CONFIG_PUBLISH: 3, // 发布配置
+  CONFIG_ABANDON: 9, // 废弃配置
+}
+```
+
+需要具备的能力
+
+- 根据 code 查询历史记录条数
+- 根据配置历史 id 查询配置详情
+- 回滚操作：二期实现
+
+
+#### 配置规则
+
+二期实现
+
+## api 设计
+
+### 新建应用
+
+| router   |  请求参数   |  返回结果  | 
+| --------   | -----  |  ----   | 
+|  POST: /app/create     |  { code, name, desc, userName }  |    { code: 0 }    |
+
+### 更新应用
+
+**参数说明**
+
+- id: 应用 id，`必选`
+- code：应用编码，不可改
+- name：可更改
+- desc：可更改
+
+| router   |  请求参数   |  返回结果  | 
+| --------   | -----  |  ----   | 
+|  POST: /app/update     |  { id, name?, desc?  }  |    { code: 0 }    |
+
+### 返回应用列表
+
+**参数说明**
+
+- pageSize: 每页条数，默认为 15
+- pageIndex: 页码，默认为 1
+- name：应用名称
+- code：应用编码
+
+| router   |  请求参数   |  返回结果  | 
+| --------   | -----  |  ----   | 
+|  GET: /app/getList     |  { pageSize?，pageIndex?, name?, code? }  |    { total， data: [ { name, code, id } ] }    |
+
+### 新建配置
+
+| router   |  请求参数   |  返回结果  | 
+| --------   | -----  |  ----   | 
+|  POST: /config/create     |  { code, name, appId, groupId?, desc? }  | {success: true}  |    |
+
+### 配置新建草稿
+
+**参数说明**
+
+- id: 配置 id
+- code: 配置 code
+- version: 版本
+- userName：用户名
+- status: 0
+- ...rest
+
+| router   |  请求参数   |  返回结果  | 
+| --------   | -----  |  ----   | 
+|  POST: /config/draft     |  { id, code, version， status = 0, userName, ...rest }  | {success: true}  |    |
+
+### 查询配置列表
+
+| router   |  请求参数   |  返回结果  | 
+| --------   | -----  |  ----   | 
+|  GET: /config/getList     |  { code?, appId?, groupId?, creator?, pageSize?=15，pageIndex?=1 }  |  {total, list: [{ code, id, appId, groupId, creator, updator }] }  |    |
+
+### 根据 id 查询指定配置
+
+| router   |  请求参数   |  返回结果  | 
+| --------   | -----  |  ----   | 
+|  GET: /config/find     |  { id }  |  { code, id, appId, groupId, creator, updator } }  |    |
+
+
+### 根据 code 查询指定配置
+
+| router   |  请求参数   |  返回结果  | 
+| --------   | -----  |  ----   | 
+|  GET: /config/findByCode     |  { code }  |  [{ code, id, appId, groupId, creator, updator }]  |    |
+
+### 更新指定配置
+
+**参数说明**
+
+- id: 配置 id
+- code: 配置 code
+- name: 配置名称
+- desc: 配置描述
+- value：配置值
+- userName：用户名
+
+> 注意：修改只针对`name`, `value`,  和 `desc` 生效
+
+| router   |  请求参数   |  返回结果  | 
+| --------   | -----  |  ----   | 
+|  POST: /config/update     |  { id, code, name?, desc?, value?, userName  }  |  { code: 0 }  |    |
+
+
+### 发布指定配置
+
+**要点**
+
+- 检查是否存在已发布的配置（草稿状态下），如果已存在，将已有的配置设置为废弃模式
+- 修改当前配置状态为已发布，版本号++
+- 将新的配置传递给 jasmine
+
+**参数说明**
+
+- id: 配置 id
+- code: 配置编码
+- version：配置版本
+- appCode：应用编码
+- value: 配置内容
+
+| router   |  请求参数   |  返回结果  | 
+| --------   | -----  |  ----   | 
+|  POST: /config/publish     |  { id, code, version, appCode, value  }  |  { code: 0 }  |    |
+
+
+### 添加操作日志（不对外提供）
+
+**参数说明**
+
+- type: CONFIG_ADD=0/CONFIG_EDIT=1/CONFIG_PUBLISH=2/CONFIG_ABANDON=9
+- code: 配置编码
+- id：配置对应 id(通过 id 来回查配置详情)
+- userName：操作人
+
+| router   |  请求参数   |  返回结果  | 
+| --------   | -----  |  ----   | 
+|  POST: /record/add     |  {type, configCode, configId, userName  }  |  { code: 0 }  |    |
+
+### 查询指定配置的操作日志列表
+
+| router   |  请求参数   |  返回结果  | 
+| --------   | -----  |  ----   | 
+|  GET: /record/getList     |  { configCode, pageSize=15, pageIndex=1  }  |  { total, list: [{id, configId, configCode, type, updator}]  |    |
+
+
+### 页面设计（草稿，以实际开发为准）
+
+#### 应用列表页
+
+![image](https://github.com/wulucxy/blog/tree/master/src/routes/secure/2020-02-10-conf-center/image/page1.png)
+
+#### 配置列表页
+
+![image](https://github.com/wulucxy/blog/tree/master/src/routes/secure/2020-02-10-conf-center/image/page2.png)
+
+#### 配置详情
+
+![image](https://github.com/wulucxy/blog/tree/master/src/routes/secure/2020-02-10-conf-center/image/page3.png)
+
