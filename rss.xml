@@ -4,9 +4,754 @@
         <title>qingtong Blog</title>
         <link>/blog</link>
         <description>来自前端一线开发的实践分享，用心做原创</description>
-        <lastBuildDate>Sat, 07 Mar 2020 12:26:41 GMT</lastBuildDate>
+        <lastBuildDate>Sat, 07 Mar 2020 15:07:09 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>https://github.com/jpmonette/feed</generator>
+        <item>
+            <title><![CDATA[redux 最佳实践]]></title>
+            <link>/blog/posts/2018-05-17/redux-best-practice/</link>
+            <guid>/blog/posts/2018-05-17/redux-best-practice/</guid>
+            <content:encoded><![CDATA[<div><h2 id="1-什么时候才需要引入-redux-？">1. 什么时候才需要引入 redux ？</h2><p>  <img src="https://github.com/wulucxy/blog/tree/master/src/routes/posts/2018-05-17-redux-best-practice/image/redux-pipeline.png" alt="redux-pipeline"/></p><p>  redux 的作者写过一篇文章，<a href="https://medium.com/@dan_abramov/you-might-not-need-redux-be46360cf367">你也许不需要redux</a>，当你开发一个简单应用的时候，redux 不应该成为你的首选。相反，redux 约定了一套基础规范来约束开发：</p><ul><li><p>用对象来描述应用状态 「store」</p></li><li><p>用对象来描述应用中的状态变化 「action」</p></li><li><p>用纯函数来描述处理状态变更的逻辑  [reducer]</p><p>那么，应用 redux 能够给我们带来的好处在于：</p></li><li><p>持久化状态数据</p></li><li><p>ssr</p></li><li><p>实现undo、redo操作</p></li><li><p>应用状态的时间旅行管理</p></li><li><p>多用户协同开发</p></li><li><p>开发工具扩展能力</p></li><li><p>强大的组合能力</p></li></ul><p>redux 提供的是一套全局的状态管理能力，如果你当前组件只需要本地 state 就能维护好应用状态，就没有必要引入 redux。只有当我们面临着以下场景：</p><ul><li>某个组件的状态，需要共享</li><li>某个状态需要在任何地方都可以拿到</li><li>一个组件需要改变全局状态</li><li>一个组件需要改变另一个组件的状态</li></ul><p>redux 提供的解决方案就能有效地帮助我们管理数据的复杂性。</p><h2 id="2-学习-redux-之前的预备知识？">2. 学习 redux 之前的预备知识？</h2><ul><li>react 应用 state 和 props 进行应用管理</li><li>react 中应用 HOC 进行代码抽象和复用</li><li>Context 全局对象</li><li>Smart、 Dumb组件</li><li>具体见<a href="https://reactjs.org/docs/hello-world.html">官网文档</a></li></ul><h2 id="3-redux-的基础知识">3. redux 的基础知识</h2><ul><li><p><a href="http://www.ruanyifeng.com/blog/2016/09/redux_tutorial_part_one_basic_usages.html">1. Redux 入门教程</a></p></li><li><p><a href="http://www.ruanyifeng.com/blog/2016/09/redux_tutorial_part_two_async_operations.html">2. 中间件与异步操作</a></p></li><li><p><a href="http://www.ruanyifeng.com/blog/2016/09/redux_tutorial_part_three_react-redux.html">3. react-redux</a></p></li></ul><h2 id="4-redux-数据结构">4. redux 数据结构</h2><p>  经常遇到的一个问题是：</p><p>  <strong>什么时候使用 Redux store，什么时候使用 React state？</strong></p><p>  <img src="https://github.com/wulucxy/blog/tree/master/src/routes/posts/2018-05-17-redux-best-practice/image/redux_state.png" alt="redux_state"/></p><p>  <a href="https://redux.js.org/faq/organizing-state#organizing-state-only-redux-state">redux 官方文档给出的回答</a>是：</p><ul><li><p>如果明确状态变更只会影响当前组件，类似于按钮状态，输入框状态，内部数据联动展示、弹窗展示等，都建议放到 state 里面进行管理</p></li><li><p>当以下场景回答为“是”时，redux store 就是更好的选择：</p><ul><li>应用中的其他部分需要用到这部分数据吗？</li><li>是否需要根据这部分原始数据创建衍生数据？</li><li>这部分相同的数据是否用于驱动多个组件？</li><li>你是否需要能够将数据恢复到某个特定的时间点（比如：在时间旅行调试的时候）？</li><li>是否需要缓存数据？（比如：直接使用已经存在的数据，而不是重新请求）</li></ul><p>实际上，我们需要一套更通用的方案来指导如何架构redux store。按照我们的实际开发经验来看，可以将数据分为<code>ui状态</code>和<code>数据逻辑</code>:</p></li></ul><h3 id="ui状态">ui状态</h3><p>  可以包括<code>弹窗展示</code>、<code>tab切换</code>，<code>下拉菜单</code>等不涉及数据逻辑的状态，通常这些更适合放在<code>React state</code>管理。</p><h3 id="数据逻辑">数据逻辑</h3><p> 我们可以通过<strong>数据持久度</strong>和<strong>数据消费程度</strong>来区分数据类型：</p><h4 id="数据持久度">数据持久度</h4><ul><li>快速变更型</li><li>中等持续型</li><li>长远稳定型</li></ul><p> <strong>快速变更型</strong>，这类数据往往代表着短时间内快速变更，比如文本框内容可能随着用户输入持续变化，或者快速拖动变更位置等，这类数据更加适合维护在state中。</p><p> <strong>中等持续性</strong>，当用户浏览或者使用应用时，在刷新页面之前数据保持相对稳定，比如ajax获取数据，编辑form表单等，这类数据比较通用，可能被其他组件所应用。这类数据适合通过redux store维护，再通过connect被组件使用。</p><p> <strong>长远稳定型</strong>，指在页面多次刷新或者多次访问期间都保持不变的数据，这类数据通常不会放在redux里面维护，一般会放到localstorage或者db里面。</p><h4 id="数据消费程度">数据消费程度</h4><p>  数据特性体现在消费层面，即有多少组件需要使用。越多组件消费的数据，就应该放在 redux store 里面维护，反之，当数据只服务于单一组件时，由 React State 维护就更加合理。</p><p>  <strong>最后，什么情况该使用哪种数据管理方式，是 React 维护 state 还是 Redux 集中管理，这个讨论不会有唯一定论。这需要开发者对于 React，Redux 深入理解，并结合场景需求完成选择。</strong></p><h2 id="5-fsa-设计规范">5. FSA 设计规范</h2><p>redux 设计非常精简，并没有追求大而全。在具体实践上，官方并没有约定一套通用的标准，在开发社区里面有很多的约定方案，其中最广为接受的方案就是<a href="https://github.com/redux-utilities/flux-standard-action">FSA</a>，全称是 <code>flux-standard-action</code>。</p><p><code>FSA</code> 的设计理念在于规范 <code>action</code> 的标准写法，让开发者都遵循同一套规范，简单友好可依赖。具体的标准如下：</p><ul><li><code>action</code> 是一个纯对象</li><li>必须要有 <code>type</code> 字段，来表示 action 类型</li><li>至少要有 <code>error</code>，<code>payload</code>, <code>meta</code> 属性之一</li><li>若 <code>action</code> 报错，<code>error</code> 必须为 true</li><li>不能有<code>type</code>, <code>error</code>，<code>payload</code>, <code>meta</code> 之外的其他属性 </li></ul><h3 id="type">type</h3><p>[必选] <code>type</code> 属性必须是字符串类型常量，通过 <code>type</code> 可以将 <code>action</code> 和 <code>reducer</code> 串联起来。</p><h3 id="payload">payload</h3><p>[可选] payload 代表 action 存放的内容，可以是任意类型的数据。当<code>error</code>值为 true 时，此时 payload 应当是一个 Error 对象</p><h3 id="error">error</h3><p>[可选] error 当取值为 true 时，此时 action 发生了错误</p><h3 id="meta">meta</h3><p>[可选] action 的额外信息，典型使用场景就是当 action payload 是一个 promise 时，通过 meta 来传递相应参数。</p><p>正式基于相同的 action 架构，<code>redux-actions</code>，<code>redux-promise-middle</code> 都是基于 <code>FSA</code> 架构的 action 处理工具。</p><h2 id="6-redux-store-设计">6. redux store 设计</h2><p>redux Store 是整个应用的核心，决定了应用如何渲染，渲染的结果是什么。所以设计好 redux store 是重中之重。</p><p>在设计 redux store 之前，我们先聊一下应用的架构。说到底，store 设计是需要服务应用架构的，离开项目需求单独讨论 store 是无本之木。</p><p>目前信贷中后台页面都是基于 papaya 的单页架构，单页架构又分为两种：</p><ul><li>A：每个页面都是一个独立的模块，页面切换会刷新当前页面，页面之间不需要共享全局状态（流程引擎）</li><li>B：纯粹单页应用，多个模块共同组成一个页面，模块切换不会刷新当前页面，需要共享全局状态（机器学习）</li></ul><p>这两类应用所维护的 store 架构就需要分开设计。</p><p><strong>从横向来看</strong>，「A应用」就适合于按「Page 页面」进行分类，也不需要抽取共享状态用于页面间分享：</p><pre><code>- page1
+  - module1
+  - module2
+  - module3
+- page2
+</code></pre><p>「B应用」更适合于按照「Feature 功能」进行分类，模块之间需要抽象出全局共享状态：</p><pre><code>- app（全局共享状态）
+- routing（路由数据）
+- module1
+- module2
+</code></pre><p><strong>从纵向来看</strong>，store 设计通用设计可以参考：</p><ul><li>store 设计尽量扁平化，store 里面 state 结构不要超过 3 层，数据之间可以通过 <code>id</code> 进行连接</li><li>多个模块之间需要共享的数据，放到父模块存储</li></ul><h2 id="7-reducer-设计">7. reducer 设计</h2><p>redux 官方示范给的 reducer 写法：</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">function</span> <span class="token function">todos</span><span class="token punctuation">(</span><span class="token parameter">state <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span> action</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  <span class="token keyword">switch</span> <span class="token punctuation">(</span>action<span class="token punctuation">.</span>type<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">case</span> <span class="token constant">ADD_TODO</span><span class="token operator">:</span>
+      <span class="token comment">// return state1</span>
+    <span class="token keyword">case</span> <span class="token constant">TOGGLE_TODO</span><span class="token operator">:</span>
+      <span class="token comment">// return state2</span>
+    <span class="token keyword">default</span><span class="token operator">:</span>
+      <span class="token keyword">return</span> state
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre><p>这种写法很好，但是不够精简，我们完全可以代替以 对象 写法：</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">import</span> typeToReducer <span class="token keyword">from</span> <span class="token string">'type-to-reducer'</span>
+
+<span class="token keyword">const</span> todosReducer <span class="token operator">=</span> <span class="token function">typeToReducer</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  <span class="token punctuation">[</span><span class="token constant">ADD_TODO</span><span class="token punctuation">]</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">state<span class="token punctuation">,</span> action</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">(</span>state1<span class="token punctuation">)</span><span class="token punctuation">,</span>
+  <span class="token punctuation">[</span><span class="token constant">TOGGLE_TODO</span><span class="token punctuation">]</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">state<span class="token punctuation">,</span> action</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">(</span>state2<span class="token punctuation">)</span>
+<span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+</code></pre><p>不仅代码更加精简，语义性也变得更强了，并且还减少了维护成本，一举三得。</p><h2 id="8-redux-actions">8. redux actions</h2><p>基于 <code>FSA</code> 架构，我们可以产出两套<code>action</code> 方案：</p><h3 id="actioncreator-写法">actionCreator 写法</h3><p><code>actionCreator</code> 写法接近于原生 action 写法:</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token comment">// 一个标准的actionCreator 同步写法</span>
+<span class="token keyword">export</span> <span class="token keyword">const</span> <span class="token function-variable function">setWorkSpaceRectData</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">value</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+  <span class="token keyword">return</span> <span class="token punctuation">{</span>
+    type<span class="token operator">:</span> types<span class="token punctuation">.</span><span class="token constant">SET_WORKSPACE_RECT_DATA</span><span class="token punctuation">,</span>
+    payload<span class="token operator">:</span> <span class="token punctuation">{</span>value<span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token comment">// 一个标准的actionCreator 异步写法</span>
+<span class="token keyword">export</span> <span class="token keyword">const</span> <span class="token function-variable function">queryAppList</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">userName</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+  <span class="token keyword">return</span> <span class="token punctuation">{</span>
+    type<span class="token operator">:</span> types<span class="token punctuation">.</span><span class="token constant">QUERY_APP_LIST</span><span class="token punctuation">,</span>
+    payload<span class="token operator">:</span> axios<span class="token punctuation">.</span><span class="token function">get</span><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">/serving/users/apps</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+    meta<span class="token operator">:</span> userName
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre><h3 id="redux-action-写法">redux-action 写法</h3><p>社区提供另外一个简化action写法的解决方案，<a href="https://github.com/redux-utilities/redux-actions">redux-actions</a>，基于 redux-actions 对上述 action 做下改造：</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">import</span> <span class="token punctuation">{</span> createAction <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'redux-actions'</span>
+
+<span class="token keyword">export</span> <span class="token keyword">const</span> setWorkSpaceRectData <span class="token operator">=</span> <span class="token function">createAction</span><span class="token punctuation">(</span>
+  types<span class="token punctuation">.</span><span class="token constant">SET_WORKSPACE_RECT_DATA</span><span class="token punctuation">,</span>
+  <span class="token parameter">value</span> <span class="token operator">=></span> <span class="token punctuation">{</span>value<span class="token punctuation">}</span>
+<span class="token punctuation">)</span>
+
+<span class="token keyword">export</span> <span class="token keyword">const</span> queryAppList <span class="token operator">=</span> <span class="token function">createAction</span><span class="token punctuation">(</span>
+  types<span class="token punctuation">.</span><span class="token constant">QUERY_APP_LIST</span><span class="token punctuation">,</span>
+  <span class="token parameter">userName</span> <span class="token operator">=></span> axios<span class="token punctuation">.</span><span class="token function">get</span><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">/serving/users/apps</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+  <span class="token parameter">userName</span> <span class="token operator">=></span> userName
+<span class="token punctuation">)</span>
+</code></pre><p>个人还是偏向原生写法，redux-action 将 action 属性封装以后反而加大了理解难度。</p><h2 id="9-redux-中间件">9. redux 中间件</h2><p><img src="http://www.ruanyifeng.com/blogimg/asset/2016/bg2016092002.jpg" alt="redux-middleware"/></p><p>redux 的中间件模型类似于 koa 的洋葱模型，对<code>store.dispatch</code>方法进行改造，就可以添加功能，具体原理参考<a href="http://www.ruanyifeng.com/blog/2016/09/redux_tutorial_part_two_async_operations.html">2. 中间件与异步操作</a>。这里只是推荐一些常用的中间件。</p><h3 id="91-redux-thunk">9.1 redux-thunk</h3><p>redux 原生设计只支持同步 Action，redux-thunk 的原理是 action 进行拦截判断，如果 thunk 发现 action 类型是函数，就在action 回调里面再触发 action，这也是 redux 异步方案的通用解决方案。</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">const</span> <span class="token function-variable function">getDataAction</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">id</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  <span class="token comment">// 1. 这里 生成的action 是一个函数，通过thunk 包装以后，实际触发的action 是 action 2</span>
+  <span class="token keyword">return</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">dispatch<span class="token punctuation">,</span> getState</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token comment">// 2. 这里才是真正触发的action</span>
+    <span class="token function">dispatch</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+      type<span class="token operator">:</span> <span class="token constant">GET_DATA</span><span class="token punctuation">,</span> 
+      payload<span class="token operator">:</span> id
+    <span class="token punctuation">}</span><span class="token punctuation">)</span>
+  <span class="token punctuation">}</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+
+store<span class="token punctuation">.</span><span class="token function">dispatch</span><span class="token punctuation">(</span><span class="token function">getDataAction</span><span class="token punctuation">(</span><span class="token string">'a'</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+</code></pre><h3 id="92-redux-promise-middleware">9.2 redux-promise-middleware</h3><p>redux-thunk 能够实现异步action，但是无法实现异步 action 的串联</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token function">action1</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token function">then</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token parameter">res</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+  <span class="token keyword">return</span> <span class="token function">action2</span><span class="token punctuation">(</span>res<span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+</code></pre><p>并且<code>redux-thunk</code>写法非常冗余，需要针对异步action 手工添加状态信息，<code>redux-promise-middleware</code> 则会自动生成
+<code>actionType_${status}</code>的 type 类型，结合<a href="https://github.com/tomatau/type-to-reducer">type-to-reducer</a>就能实现很好地代码优化。</p><h3 id="93-redux-logger">9.3 redux-logger</h3><p>redux-logger 能够将 action 打印到控制台，非常方便 debug。</p><h3 id="94-redux-devtools-extension">9.4 redux-devtools-extension</h3><p>redux 作者维护的结合浏览器插件的开发神器。</p><h2 id="qa">QA</h2><p>1 是否允许按需 connect？</p><blockquote><p>允许。具体还是从业务层面需求出发，如果当前组件我们认为其更加适合作为一个容器型组件，也就是跟业务数据有很强的关联，这个时候connect 就是比较好的选择，反之，如果当前组件更偏向于展示型，那么数据来源更合适从父组件获取，而非 connect。</p><p>关于何时 connect 比较合适，目前无法提供一套通用的解决方案，还是需要从实际业务中去判断，一个原则是 当需要跟业务数据强关联，就合适 connect，反之如果组件更适合作为展示组件，就更适合从父组件上获取数据。</p></blockquote><p>2 目录结构划分，是按照action，reducer，constant 按功能进行页面区分，还是支持像 <a href="https://github.com/erikras/ducks-modular-redux">ducks</a> 将所有文件统一管理？</p><blockquote><p><a href="https://github.com/erikras/ducks-modular-redux">ducks</a>写法推崇将 actionCreator，reducer，constant 都写到同一个文件里，优点在于减少页面切换。但 redux 作者并不赞同，因为这种写法会给用户造成 action 和 reducer 是一一对应的错误，并且当 action 需要共享 reducer 时，无法做到抽象。</p><p><strong>结论</strong>，优先推荐使用 ducks 写法，如果有复杂数据处理场景，建议采用按功能区分的写法。</p></blockquote><p>3 immutable 在哪里 toJS？</p><blockquote><p>immutable 在 connect 里面 toJS 是一种反模式，并且在展示组件（Dumb）里面是否应用 immutable 对象，<a href="https://redux.js.org/recipes/using-immutable.js-with-redux#never-use-immutable-js-in-your-dumb-components">官方并不推荐</a>，实际上如果组件之间传递的是 immutable 对象对性能提升有一定的帮助。</p><p><strong>结论</strong>，toJS 建议按需来转，比如当跟服务端进行数据交互时就应该执行 toJS 操作。另外，展示组件 推荐传递非 immutalble 对象，当需要性能优化时，可以考虑传递 immutable 对象</p></blockquote><p>4 一个 action 是否需要聚合所有操作？</p><blockquote><p>action 聚合最合适的时候应该交由 view 层控制，每个 action 维护的都是最小单元的数据操作逻辑。通过<code>redux-promise-middleware</code> 可以实现 异步action 串联和聚合效果。</p><p>另外，即使这种情况下，因为无法保证所有 action 都能返回 promise，所以<strong>不建议移除 redux-thunk</strong>。</p></blockquote><p>5 目前在papaya 中使用的 FSA、 type-to-reducer、ducks 这种是否为强制规范？</p><blockquote><p>FSA 是目前 redux 社区推荐的方案，建议使用，type-to-reducer 能够帮助书写更优雅的reducer，并且是对 redux-promise-middleware 的优化写法，ducks 可以减少文件维护成本。</p><p><strong>结论</strong>，推荐使用FSA、type-to-reducer、ducks 等写法。</p></blockquote><p>6 哪种情况数据应该放在 state 中，哪种应该放在 store 中？</p><blockquote><p>参考 [redux数据结构](#4. redux 数据结构)</p></blockquote><p>7 什么情况下使用 action , 什么情况下使用静态方法？</p><blockquote><p>如果涉及到后端请求或前端查询数据，即使不用关心action操作返回的值，也建议使用action，因为后续如果需求改动或者数据变更，有更好的可扩展性。静态方法适合于跟数据逻辑无关的 ui 状态。</p></blockquote><p>8 如何组织一个前端业务操作流，例如：执行了发货操作，操作成功，执行查询操作，再执行 xxx 操作。。。</p><blockquote><p>在 React 层来调用相应 action：</p></blockquote><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">mail</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token parameter">res</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+  <span class="token keyword">if</span> <span class="token punctuation">(</span>res<span class="token punctuation">.</span>value<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">return</span> <span class="token keyword">this</span><span class="token punctuation">.</span>props<span class="token punctuation">.</span><span class="token function">query</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+      <span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token parameter">res2</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+        <span class="token comment">// something else</span>
+      <span class="token punctuation">}</span><span class="token punctuation">)</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre><p>9 promiseMiddleware 的最佳实践和反模式？</p><blockquote><p><a href="https://github.com/pburtchaell/redux-promise-middleware/tree/master/docs/guides">官方文档</a></p></blockquote></div>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[React 你不知道的那些事儿]]></title>
+            <link>/blog/posts/2018-08-15/you-dont-know-react/</link>
+            <guid>/blog/posts/2018-08-15/you-dont-know-react/</guid>
+            <content:encoded><![CDATA[<div><blockquote><p>注：本文写于 2018 年，基于 react 15 的一些实践分享，部分内容已经不太符合目前 react 16 的架构，请谨慎采纳</p></blockquote><p><img src="https://github.com/wulucxy/blog/tree/master/src/routes/posts/2018-08-15-you-dont-know-react/image/graphic.png" alt="react-graphic"/></p><p>React 上手很简单，初次接触 React 的同学花半天时间差不多就能看完 React 官网文档。但要真正掌握 React 是一个漫长的过程，React 真正的威力在于其背后庞大繁荣的生态圈，redux、react-router、mobX、create-react-app、GraphQL 等，你要学习的不是一个库，也不是一个框架，而是一整套技术栈，和完整的 React 的思维方式。 </p><p>本文不介绍 React 基础知识，也不介绍 React 库 的具体用法，我会分享一些 React 实战开发中的 ”令人眼前一亮“ 的案例，希望能够对你有一定的启发。当然如果你有更好的 case 分享，欢迎评论。</p><h3 id="1-component">1. Component</h3><p>React 有三种组件构建方式：</p><ul><li>React.Component</li><li>React.pureComponent</li><li>stateless Component</li></ul><p>这三种组件区别可以参考 <a href="https://reactjs.org/docs/components-and-props.html">官方文档</a>，这里要聊得是如何选择组件类型：</p><p>通常我们可以按照以下逻辑来确定组件应用场景：</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">if</span> <span class="token punctuation">(</span>componentHasNoState<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+ <span class="token comment">// 1. 如果组件不需要维护应用状态，选择 stateless Component</span>
+ <span class="token keyword">return</span> <span class="token function">itsStatelessComponent</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token keyword">if</span> <span class="token punctuation">(</span>componentHasSimplePropsState <span class="token operator">&amp;&amp;</span> propsHasNoNestedObjects<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+ <span class="token comment">// 2. 如果组件属性简单，并且不含有嵌套数据，选择 pureComponent</span>
+ <span class="token keyword">return</span> <span class="token function">itsPureComponent</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{</span>
+ <span class="token comment">// 3. 其他情况选择 Component</span>
+ <span class="token keyword">return</span> <span class="token function">itsComponent</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+</code></pre><blockquote><p>补充：</p><p>React.pureComponent 对于高响应组件（Input 等）也不建议使用，每次比较props有性能消耗。</p></blockquote><h3 id="2-refs">2. refs</h3><p>React 通过声明式的渲染机制把复杂 DOM 操作简化为 state 和 props 操作，但某些特场景，我们仍然离不开 DOM 操作和跨组件调用，React 开放了 ref 属性可以方便我们操作 DOM 和 调用其他组件实例。</p><p>React <a href="https://reactjs.org/docs/refs-and-the-dom.html">创建 ref 有三种方式</a>：</p><ul><li>string 类型 ref - <strong>deprecated，不推荐使用</strong></li><li>callback ref - 推荐使用</li><li>React.createRef() - <strong>React 16 后添加，推荐使用</strong></li></ul><p>ref 使用有几点需要特别注意：</p><ul><li>stateless 组件上无法直接使用，因为stateless 组件无实例</li></ul><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">function</span> <span class="token function">MyFunctionalComponent</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  <span class="token keyword">return</span> <span class="token operator">&lt;</span>input <span class="token operator">/</span><span class="token operator">></span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">class</span> <span class="token class-name">Parent</span> <span class="token keyword">extends</span> <span class="token class-name">React<span class="token punctuation">.</span>Component</span> <span class="token punctuation">{</span>
+  <span class="token function">constructor</span><span class="token punctuation">(</span><span class="token parameter">props</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">super</span><span class="token punctuation">(</span>props<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">this</span><span class="token punctuation">.</span>textInput <span class="token operator">=</span> React<span class="token punctuation">.</span><span class="token function">createRef</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+  <span class="token function">render</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token comment">// 错误，无状态组件没有实例</span>
+    <span class="token keyword">return</span> <span class="token punctuation">(</span>
+      <span class="token operator">&lt;</span>MyFunctionalComponent ref<span class="token operator">=</span><span class="token punctuation">{</span><span class="token keyword">this</span><span class="token punctuation">.</span>textInput<span class="token punctuation">}</span> <span class="token operator">/</span><span class="token operator">></span>
+    <span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre><ul><li>stateless 组件内部可以使用 ref</li></ul><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">function</span> <span class="token function">CustomTextInput</span><span class="token punctuation">(</span><span class="token parameter">props</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  <span class="token comment">// ref 需要在组件初始化就创建</span>
+  <span class="token keyword">let</span> textInput <span class="token operator">=</span> React<span class="token punctuation">.</span><span class="token function">createRef</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+  <span class="token keyword">function</span> <span class="token function">handleClick</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token comment">// 无状态组件内部可以创建ref</span>
+    textInput<span class="token punctuation">.</span>current<span class="token punctuation">.</span><span class="token function">focus</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+
+  <span class="token keyword">return</span> <span class="token punctuation">(</span>
+    <span class="token operator">&lt;</span>div<span class="token operator">></span>
+      <span class="token operator">&lt;</span>input
+        type<span class="token operator">=</span><span class="token string">"text"</span>
+        ref<span class="token operator">=</span><span class="token punctuation">{</span>textInput<span class="token punctuation">}</span> <span class="token operator">/</span><span class="token operator">></span>
+
+      <span class="token operator">&lt;</span>input
+        type<span class="token operator">=</span><span class="token string">"button"</span>
+        value<span class="token operator">=</span><span class="token string">"Focus the text input"</span>
+        onClick<span class="token operator">=</span><span class="token punctuation">{</span>handleClick<span class="token punctuation">}</span>
+      <span class="token operator">/</span><span class="token operator">></span>
+    <span class="token operator">&lt;</span><span class="token operator">/</span>div<span class="token operator">></span>
+  <span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre><ul><li>innerRef 跨组件调用</li></ul><p>当我们需要在父组件上拿到子组件的 DOM 元素时，我们可以传递一个自定义 innerRef 直接从父组件上拿到子组件的 DOM 元素：</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">function</span> <span class="token function">CustomTextInput</span><span class="token punctuation">(</span><span class="token parameter">props</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  <span class="token keyword">return</span> <span class="token punctuation">(</span>
+    <span class="token operator">&lt;</span>div<span class="token operator">></span>
+      <span class="token operator">&lt;</span>input ref<span class="token operator">=</span><span class="token punctuation">{</span>props<span class="token punctuation">.</span>innerRef<span class="token punctuation">}</span> <span class="token operator">/</span><span class="token operator">></span>
+    <span class="token operator">&lt;</span><span class="token operator">/</span>div<span class="token operator">></span>
+  <span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">class</span> <span class="token class-name">Parent</span> <span class="token keyword">extends</span> <span class="token class-name">React<span class="token punctuation">.</span>Component</span> <span class="token punctuation">{</span>
+  <span class="token function-variable function">_setRef</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">el</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+    <span class="token keyword">this</span><span class="token punctuation">.</span>inputElement <span class="token operator">=</span> el
+  <span class="token punctuation">}</span>
+  <span class="token function">render</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">return</span> <span class="token punctuation">(</span>
+      <span class="token operator">&lt;</span>CustomTextInput
+        innerRef<span class="token operator">=</span><span class="token punctuation">{</span><span class="token keyword">this</span><span class="token punctuation">.</span>_setRef<span class="token punctuation">}</span>
+      <span class="token operator">/</span><span class="token operator">></span>
+    <span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre><ul><li>ref 在 HOC 中传递</li></ul><p>ref 属性类似于 key, 本质是给 React 内部使用的，无法通过 props 进行传递。在 HOC 高阶组件内部，ref 往往不能正确获得内部实例，类似于 <a href="https://github.com/reduxjs/react-redux/blob/d769be59dafde13cee509185f1bab385b90dd9e7/src/components/connectAdvanced.js#L179-L189">react-redux 实现</a>，我们需要对组件增加 getWrappedInstance 和 setWrappedInstance 方法：</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">function</span> <span class="token constant">HOC</span><span class="token punctuation">(</span><span class="token parameter">WrappedComponent</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  <span class="token keyword">class</span> <span class="token class-name">HOCComponent</span> <span class="token keyword">extends</span> <span class="token class-name">React<span class="token punctuation">.</span>Component</span> <span class="token punctuation">{</span>    
+    <span class="token comment">// 提供对外实例的方法</span>
+    <span class="token function-variable function">getWrappedInstance</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+      <span class="token keyword">return</span> <span class="token keyword">this</span><span class="token punctuation">.</span>wrappedInstance<span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token comment">// 实现 ref 的访问</span>
+    <span class="token function-variable function">setWrappedInstance</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">ref</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+      <span class="token keyword">this</span><span class="token punctuation">.</span>wrappedInstance <span class="token operator">=</span> ref<span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+    
+    <span class="token function">render</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+      <span class="token keyword">return</span> <span class="token operator">&lt;</span>WrappedComponent ref<span class="token operator">=</span><span class="token punctuation">{</span><span class="token keyword">this</span><span class="token punctuation">.</span>setWrappedInstance<span class="token punctuation">}</span> <span class="token punctuation">{</span><span class="token operator">...</span><span class="token keyword">this</span><span class="token punctuation">.</span>props<span class="token punctuation">}</span> <span class="token operator">/</span><span class="token operator">></span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+
+  <span class="token keyword">return</span> HOCComponent<span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">const</span> App <span class="token operator">=</span> <span class="token constant">HOC</span><span class="token punctuation">(</span>Wrap<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token operator">&lt;</span>App ref<span class="token operator">=</span><span class="token punctuation">{</span><span class="token punctuation">(</span><span class="token parameter">comp</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+  <span class="token comment">// 只能获取到 HOCComponent</span>
+  console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>comp<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token comment">// 通过中转后可以获取到 WrappedComponent</span>
+  console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>comp<span class="token punctuation">.</span><span class="token function">getWrappedInstance</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">}</span> <span class="token operator">/</span><span class="token operator">></span>
+</code></pre><ul><li>穿云箭 React.forwardRef</li></ul><p>React 16 可以通过 React.forwardRef 更加方便地从父组件传递 ref 到子组件，<code>ForwardRef</code> 字面意思就是 <code>forward(传递)ref</code>。</p><p>我们对上面定义的 HOC 高阶组件做一个改造：</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">function</span> <span class="token constant">HOC</span><span class="token punctuation">(</span><span class="token parameter">WrappedComponent</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  <span class="token keyword">class</span> <span class="token class-name">HOCComponent</span> <span class="token keyword">extends</span> <span class="token class-name">React<span class="token punctuation">.</span>Component</span> <span class="token punctuation">{</span>   
+    <span class="token function">render</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+      <span class="token keyword">const</span> <span class="token punctuation">{</span>forwardRef<span class="token punctuation">,</span> <span class="token operator">...</span>rest<span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span>props
+      <span class="token keyword">return</span> <span class="token operator">&lt;</span>WrappedComponent ref<span class="token operator">=</span><span class="token punctuation">{</span>forwardRef<span class="token punctuation">}</span> <span class="token punctuation">{</span><span class="token operator">...</span>rest<span class="token punctuation">}</span> <span class="token operator">/</span><span class="token operator">></span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+
+  <span class="token keyword">return</span> React<span class="token punctuation">.</span><span class="token function">forwardRef</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token parameter">props<span class="token punctuation">,</span> ref</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">(</span>
+    <span class="token operator">&lt;</span>HOCComponent forwardRef<span class="token operator">=</span><span class="token punctuation">{</span>ref<span class="token punctuation">}</span> <span class="token punctuation">{</span><span class="token operator">...</span>props<span class="token punctuation">}</span> <span class="token operator">/</span><span class="token operator">></span>
+  <span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">const</span> App <span class="token operator">=</span> <span class="token constant">HOC</span><span class="token punctuation">(</span>Wrap<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token operator">&lt;</span>App ref<span class="token operator">=</span><span class="token punctuation">{</span><span class="token punctuation">(</span><span class="token parameter">comp</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+  <span class="token comment">// 此时就能直接拿到内部组件实例了</span>
+  console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>comp<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">}</span> <span class="token operator">/</span><span class="token operator">></span>
+</code></pre><h3 id="3-react-router-支持路由动态布局">3. React-Router 支持路由动态布局</h3><p>一个复杂的单页应用往往有不止一种 页面布局 展示，比如 A 页面布局是：</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token operator">&lt;</span>Header<span class="token operator">></span>
+  <span class="token operator">&lt;</span>Asider<span class="token operator">></span>
+  <span class="token operator">&lt;</span>Main<span class="token operator">></span>
+<span class="token operator">&lt;</span>Footer<span class="token operator">></span>
+</code></pre><p>B 页面的布局是：</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token operator">&lt;</span>Header<span class="token operator">></span>
+  <span class="token operator">&lt;</span>Main<span class="token operator">></span>
+<span class="token operator">&lt;</span>Footer<span class="token operator">></span>
+</code></pre><p>我们希望实现根据页面路由自定义页面布局展现。</p><p>在单一页面布局下，我们通常是这么架构应用路由：</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token operator">&lt;</span>Layout<span class="token operator">></span>
+  <span class="token operator">&lt;</span>Switch<span class="token operator">></span>
+    <span class="token operator">&lt;</span>Route<span class="token operator">></span>
+</code></pre><p>为了支持动态 <code>layout</code> 布局能力，就无法再沿用 <code>Layout</code> 嵌套 <code>Route</code> 来实现，我们希望能够实现 <code>Route</code> 嵌套 <code>Layout</code>：</p><p>类似于：</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token operator">&lt;</span>Route <span class="token punctuation">{</span><span class="token operator">...</span>props<span class="token punctuation">}</span><span class="token operator">></span>
+  <span class="token operator">&lt;</span>Layout <span class="token operator">/</span><span class="token operator">></span>
+</code></pre><p>这样就可以实现动态路由布局能力了。</p><p><code>react-router</code> 提供了 <a href="https://reacttraining.com/react-router/web/api/Route/render-func">render</a> 方法来自定义<code>Route</code>组件。</p><p>对 Route 稍加改写就可以支持了：</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">const</span> <span class="token function-variable function">BaseRoute</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter"><span class="token punctuation">{</span>component<span class="token operator">:</span> Component<span class="token punctuation">,</span> <span class="token operator">...</span>rest<span class="token punctuation">}</span></span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+  <span class="token keyword">return</span> <span class="token punctuation">(</span>
+    <span class="token operator">&lt;</span>Route <span class="token punctuation">{</span><span class="token operator">...</span>rest<span class="token punctuation">}</span> render<span class="token operator">=</span><span class="token punctuation">{</span><span class="token parameter">matchProps</span> <span class="token operator">=></span> <span class="token punctuation">(</span>
+      <span class="token operator">&lt;</span>BaseLayout<span class="token operator">></span>
+        <span class="token operator">&lt;</span>Component <span class="token punctuation">{</span><span class="token operator">...</span>matchProps<span class="token punctuation">}</span> <span class="token operator">/</span><span class="token operator">></span>
+      <span class="token operator">&lt;</span><span class="token operator">/</span>BaseLayout<span class="token operator">></span>
+    <span class="token punctuation">)</span><span class="token punctuation">}</span> <span class="token operator">/</span><span class="token operator">></span>
+  <span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+</code></pre><p>于是我们在外部调用即可：</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token operator">&lt;</span>Router<span class="token operator">></span>
+  <span class="token operator">&lt;</span>Switch<span class="token operator">></span>
+      <span class="token operator">&lt;</span>BaseRoute path<span class="token operator">=</span><span class="token string">'/guide'</span> exact component<span class="token operator">=</span><span class="token punctuation">{</span>QuickStart<span class="token punctuation">}</span> <span class="token operator">/</span><span class="token operator">></span>
+      <span class="token operator">&lt;</span>WithoutSideBarRoute path<span class="token operator">=</span><span class="token string">'/demo'</span> exact component<span class="token operator">=</span><span class="token punctuation">{</span>Demo<span class="token punctuation">}</span> <span class="token operator">/</span><span class="token operator">></span>
+      <span class="token operator">&lt;</span>Redirect to<span class="token operator">=</span><span class="token string">'/guide'</span> <span class="token operator">/</span><span class="token operator">></span>
+   <span class="token operator">&lt;</span><span class="token operator">/</span>Switch<span class="token operator">></span>
+<span class="token operator">&lt;</span>Router<span class="token operator">></span>
+</code></pre><p>这样我们就可以将<code>Router</code>和<code>Layout</code>组合起来，衍生出各种布局能力了。</p><h3 id="4-单页应用-pv-统计">4. 单页应用 PV 统计</h3><p>传统页面 PV 统计是基于页面之间链接跳转实现，但在单页应用里页内路由替代了请求新的页面，PV 统计只在应用初始化才会触发，这就意味着我们需要新的单页应用 PV 统计方案。</p><p>我们有两种方式来实现 PV 统计：</p><ol><li>监听 hashChange 变化上报 PV</li><li>基于 decorate 装饰 Route 组件，每次参数变更上报 PV</li></ol><p>第 1 种方案很好实现，在路由文件上侦听 hashChange 事件即可</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token function-variable function">hashChangeHandle</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+  ReactGA<span class="token punctuation">.</span><span class="token function">pageview</span><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>location<span class="token punctuation">.</span>pathname<span class="token interpolation-punctuation punctuation">}</span></span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>location<span class="token punctuation">.</span>search<span class="token interpolation-punctuation punctuation">}</span></span><span class="token template-punctuation string">`</span></span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+<span class="token function">componentDidMount</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  window<span class="token punctuation">.</span><span class="token function">addEventListener</span><span class="token punctuation">(</span><span class="token string">'hashchange'</span><span class="token punctuation">,</span> <span class="token keyword">this</span><span class="token punctuation">.</span>hashChangeHandler<span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+<span class="token function">componentWillUnmount</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  window<span class="token punctuation">.</span><span class="token function">removeEventListener</span><span class="token punctuation">(</span><span class="token string">'hashchange'</span><span class="token punctuation">,</span> <span class="token keyword">this</span><span class="token punctuation">.</span>hashChangeHandler<span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+</code></pre><p>第二种方案的本质是当路由组件参数变更时，意味着此时路由 <code>path</code> 参数变更，直接监听 <code>componentWillReiveProps</code> 就能实现 PV 上报。我们需要一个装饰器方法将路由组件包装好。</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">const</span> <span class="token function-variable function">withRouter</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">(</span><span class="token parameter">WrappedComponent</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+  <span class="token keyword">return</span> <span class="token keyword">class</span> <span class="token class-name">extends</span> React<span class="token punctuation">.</span>PureComponent <span class="token punctuation">{</span>
+    <span class="token function-variable function">trackData</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">props</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+      <span class="token keyword">const</span> <span class="token punctuation">{</span>location<span class="token punctuation">}</span> <span class="token operator">=</span> props
+      <span class="token comment">// 上报PV</span>
+      ReactGA<span class="token punctuation">.</span><span class="token function">pageview</span><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>location<span class="token punctuation">.</span>pathname<span class="token interpolation-punctuation punctuation">}</span></span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>location<span class="token punctuation">.</span>search<span class="token interpolation-punctuation punctuation">}</span></span><span class="token template-punctuation string">`</span></span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token function">componentDidMount</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+      <span class="token comment">// 初始化也要上报PV</span>
+      <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">trackData</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">.</span>props<span class="token punctuation">)</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token function">componentWillReceiveProps</span> <span class="token punctuation">(</span><span class="token parameter">props</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+      <span class="token comment">// 每次路由参数变更上报PV</span>
+      <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">trackData</span><span class="token punctuation">(</span>props<span class="token punctuation">)</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token function">render</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+      <span class="token keyword">return</span> <span class="token operator">&lt;</span>WrappedComponent <span class="token punctuation">{</span><span class="token operator">...</span><span class="token keyword">this</span><span class="token punctuation">.</span>props<span class="token punctuation">}</span> <span class="token operator">/</span><span class="token operator">></span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre><p>在外面调用就很简单了，将 <code>BaseRoute</code> 包装一层即可。</p><pre><code>// ....BaseRoute 原有逻辑
+export default withRouter()(BaseRoute)
+</code></pre><h3 id="5-权限控制">5. 权限控制</h3><p>权限控制是中后台系统的核心功能之一，权限控制一般分为页面粒度和页面元素粒度。</p><p>当我们需要对页面元素粒度进行权限控制时，譬如我们需要页面上 button 按钮根据是否有权限，来控制展示或隐藏：</p><pre><code class="language-jsx" data-language="jsx" data-highlighted-line-numbers=""><span class="token function">render</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  <span class="token keyword">const</span> <span class="token punctuation">{</span>code<span class="token punctuation">,</span> resouceList<span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span>props
+  <span class="token keyword">let</span> hasAuth <span class="token operator">=</span> resouceList<span class="token punctuation">.</span><span class="token function">includes</span><span class="token punctuation">(</span>code<span class="token punctuation">)</span>
+  <span class="token keyword">return</span> <span class="token punctuation">(</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span><span class="token punctuation">></span></span><span class="token plain-text">
+      </span><span class="token punctuation">{</span>hasAuth <span class="token operator">?</span> <span class="token punctuation">(</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>button</span><span class="token punctuation">></span></span><span class="token plain-text">创建用户</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>button</span><span class="token punctuation">></span></span><span class="token punctuation">)</span> <span class="token operator">:</span> <span class="token keyword">null</span><span class="token punctuation">}</span><span class="token plain-text">
+    </span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">></span></span>
+    
+  <span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+</code></pre><p>一个元素这么写当然没问题，但是如果有 10 个元素需要加权限控制，或者按钮的显示逻辑修改了呢，我们需要一个更加通用的解决办法。</p><p>我们可以创建一个组件容器组件专门负责管理权限：</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">function</span> <span class="token function">AuthContainer</span> <span class="token punctuation">(</span><span class="token parameter"><span class="token punctuation">{</span> resourceList<span class="token punctuation">,</span> children<span class="token punctuation">,</span> code <span class="token punctuation">}</span></span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  <span class="token keyword">const</span> hasAuth <span class="token operator">=</span> resourceList<span class="token punctuation">.</span><span class="token function">includes</span><span class="token punctuation">(</span>code<span class="token punctuation">)</span>
+  <span class="token keyword">return</span> hasAuth <span class="token operator">&amp;&amp;</span> children
+<span class="token punctuation">}</span>
+</code></pre><p>然后将上面的组件改写一下：</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token function">render</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  <span class="token keyword">const</span> <span class="token punctuation">{</span>code<span class="token punctuation">,</span> resouceList<span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span>props
+  <span class="token keyword">return</span> <span class="token punctuation">(</span>
+    <span class="token operator">&lt;</span>AuthContainer code<span class="token operator">=</span><span class="token punctuation">{</span>code<span class="token punctuation">}</span> resouceList<span class="token operator">=</span><span class="token punctuation">{</span>resouceList<span class="token punctuation">}</span><span class="token operator">></span>
+      <span class="token operator">&lt;</span>button<span class="token operator">></span>创建用户<span class="token operator">&lt;</span><span class="token operator">/</span>button<span class="token operator">></span><span class="token punctuation">)</span>
+    <span class="token operator">&lt;</span><span class="token operator">/</span>AuthContainer<span class="token operator">></span>
+  <span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+</code></pre><p>重构完的代码无论是从语义性，还是扩展性都有很大的提升。</p><h3 id="6-currying-react">6. currying React</h3><p>currying 柯里化是函数式语言基础的写法，通俗化来说就是把多个参数的函数变换成接受一个个单一参数的函数，并且在最后返回新函数。</p><p>也广泛应用在 React 及其周边库的写法中，像常用<code>react-redux</code> 中 <code>connect(mapStateToProps, mapDispatchToProps)(App)</code> 就是标准的柯里化写法。</p><p>以下举个栗子来阐释柯里化在 React 开发中的实践：</p><ul><li>多个过滤条件合并</li></ul><p>现在有一个case，我们分别需要针对 price、age、brand 三个维度过滤筛选产品列表</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token comment">// 通常实现</span>
+<span class="token keyword">class</span> <span class="token class-name">Filters</span> <span class="token keyword">extends</span> <span class="token class-name">React<span class="token punctuation">.</span>Component</span> <span class="token punctuation">{</span>
+  <span class="token comment">// 更新价格条件</span>
+  <span class="token function-variable function">updatePriceFilter</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">newValue</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+    <span class="token keyword">this</span><span class="token punctuation">.</span>props<span class="token punctuation">.</span><span class="token function">selectionsChanged</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+      <span class="token operator">...</span><span class="token keyword">this</span><span class="token punctuation">.</span>props<span class="token punctuation">.</span>filterSelections<span class="token punctuation">,</span>
+      price<span class="token operator">:</span> newValue
+    <span class="token punctuation">}</span><span class="token punctuation">)</span>
+  <span class="token punctuation">}</span><span class="token punctuation">;</span>
+  
+  <span class="token comment">// 更新年龄条件</span>
+  <span class="token function-variable function">updateAgeFilter</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">newValue</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+    <span class="token keyword">this</span><span class="token punctuation">.</span>props<span class="token punctuation">.</span><span class="token function">selectionsChanged</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+      <span class="token operator">...</span><span class="token keyword">this</span><span class="token punctuation">.</span>props<span class="token punctuation">.</span>filterSelections<span class="token punctuation">,</span>
+      ages<span class="token operator">:</span> newValue
+    <span class="token punctuation">}</span><span class="token punctuation">)</span>
+  <span class="token punctuation">}</span><span class="token punctuation">;</span>
+  
+  <span class="token comment">// 更新品牌条件</span>
+  <span class="token function-variable function">updateBrandFilter</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">newValue</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+    <span class="token keyword">this</span><span class="token punctuation">.</span>props<span class="token punctuation">.</span><span class="token function">selectionsChanged</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+      <span class="token operator">...</span><span class="token keyword">this</span><span class="token punctuation">.</span>props<span class="token punctuation">.</span>filterSelections<span class="token punctuation">,</span>
+      brands<span class="token operator">:</span> newValue
+    <span class="token punctuation">}</span><span class="token punctuation">)</span>
+  <span class="token punctuation">}</span><span class="token punctuation">;</span>
+  
+  <span class="token function">render</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">return</span> <span class="token punctuation">(</span>
+      <span class="token operator">&lt;</span>div<span class="token operator">></span>
+        <span class="token operator">&lt;</span>PriceFilter 
+          priceChanged<span class="token operator">=</span><span class="token punctuation">{</span><span class="token keyword">this</span><span class="token punctuation">.</span>updatePriceFilter<span class="token punctuation">}</span> 
+        <span class="token operator">/</span><span class="token operator">></span>
+        <span class="token operator">&lt;</span>AgeFilter 
+          agesChanged<span class="token operator">=</span><span class="token punctuation">{</span><span class="token keyword">this</span><span class="token punctuation">.</span>updateAgeFilter<span class="token punctuation">}</span> 
+        <span class="token operator">/</span><span class="token operator">></span>
+        <span class="token operator">&lt;</span>BrandFilter 
+          brandsChanged<span class="token operator">=</span><span class="token punctuation">{</span><span class="token keyword">this</span><span class="token punctuation">.</span>updateBrandFilter<span class="token punctuation">}</span> 
+        <span class="token operator">/</span><span class="token operator">></span>
+      <span class="token operator">&lt;</span><span class="token operator">/</span>div<span class="token operator">></span>
+    <span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre><p>我们发现，三个过滤方法除了过滤条件不一样，其他代码逻辑几乎一样，如果后续再增加一个过滤条件，我们几乎是需要再拷贝一遍代码，这不科学。</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token comment">// 柯里化实现</span>
+<span class="token keyword">class</span> <span class="token class-name">Filters</span> <span class="token keyword">extends</span> <span class="token class-name">React<span class="token punctuation">.</span>Component</span> <span class="token punctuation">{</span>
+  <span class="token comment">// 合并过滤条件</span>
+  <span class="token function-variable function">updateSelections</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">selectionType</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">(</span><span class="token parameter">newValue</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+     <span class="token keyword">this</span><span class="token punctuation">.</span>props<span class="token punctuation">.</span><span class="token function">selectionsChanged</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+        <span class="token operator">...</span><span class="token keyword">this</span><span class="token punctuation">.</span>props<span class="token punctuation">.</span>filterSelections<span class="token punctuation">,</span>
+        <span class="token punctuation">[</span>selectionType<span class="token punctuation">]</span><span class="token operator">:</span> newValue<span class="token punctuation">,</span>
+     <span class="token punctuation">}</span><span class="token punctuation">)</span>
+  <span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+  <span class="token function">render</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">return</span> <span class="token punctuation">(</span>
+      <span class="token operator">&lt;</span>div<span class="token operator">></span>
+        <span class="token operator">&lt;</span>PriceFilter 
+          priceChanged<span class="token operator">=</span><span class="token punctuation">{</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">updateSelections</span><span class="token punctuation">(</span><span class="token string">'price'</span><span class="token punctuation">)</span><span class="token punctuation">}</span> 
+        <span class="token operator">/</span><span class="token operator">></span>
+        <span class="token operator">&lt;</span>AgeFilter 
+          agesChanged<span class="token operator">=</span><span class="token punctuation">{</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">updateSelections</span><span class="token punctuation">(</span><span class="token string">'age'</span><span class="token punctuation">)</span><span class="token punctuation">}</span> 
+        <span class="token operator">/</span><span class="token operator">></span>
+        <span class="token operator">&lt;</span>BrandFilter 
+          brandsChanged<span class="token operator">=</span><span class="token punctuation">{</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">updateSelections</span><span class="token punctuation">(</span><span class="token string">'brand'</span><span class="token punctuation">)</span><span class="token punctuation">}</span> 
+        <span class="token operator">/</span><span class="token operator">></span>
+      <span class="token operator">&lt;</span><span class="token operator">/</span>div<span class="token operator">></span>
+    <span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre><p>很明显，柯里化改造后的代码大大简化了代码逻辑，也增强后续扩展性。</p><blockquote><blockquote><p>更新 </p></blockquote><p>目前这种实现方式，还是会导致每次重新创建匿名方法，应该通过如下方式，才能避免文中所说的匿名方法重复创建问题：</p><p>updateSelectionsPrice = updateSelections(’price’)</p><p>updateSelectionsAge = updateSelections(’age’)</p><p>updateSelectionsBrand = updateSelections(’brand’)</p></blockquote><h3 id="7-recompose-让生活更美好">7. recompose 让生活更美好</h3><p><a href="https://github.com/acdlite/recompose/blob/master/docs/API.md">recompose</a> 是一个优秀的 React 社区开源库，提供了一系列小而美的高阶组件和工具类方法，可以看成是 React 的 lodash。</p><ul><li>pure：可以将函数式组件实现 PureComponent 的能力，减少重复渲染</li><li>withProps: 给组件添加属性，譬如可以将当前页面的路由信息、一些需要计算的信息作为属性注入到组件</li><li>withPropsOnChange: 类似于withProps, 当时只有当传入组件发生变更才会重新计算属性注入到组件中</li><li>defaultProps：添加默认属性（常用于公共属性的提取和添加）</li><li>setPropTypes：设置属性类型（常用于公共属性设置）</li><li>compose：将多个高阶组件组合起来</li></ul><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers="">composedHoc <span class="token operator">=</span> <span class="token function">compose</span><span class="token punctuation">(</span>hoc1<span class="token punctuation">,</span> hoc2<span class="token punctuation">,</span> hoc3<span class="token punctuation">)</span><span class="token punctuation">(</span>App<span class="token punctuation">)</span>
+<span class="token comment">// 实际上等于</span>
+<span class="token function">hoc1</span><span class="token punctuation">(</span><span class="token function">hoc2</span><span class="token punctuation">(</span><span class="token function">hoc3</span><span class="token punctuation">(</span>App<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+</code></pre><p>希望 recompose 同样能够成为你开发的得力助手。</p></div>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[React 类型探究]]></title>
+            <link>/blog/posts/2018-12-28/react-element/</link>
+            <guid>/blog/posts/2018-12-28/react-element/</guid>
+            <content:encoded><![CDATA[<div><h2 id="1-reactelement">1. <code>ReactElement</code></h2><p><code>ReactElement</code> 是构建 <code>React</code> 应用的<strong>最小单元</strong>。</p><p><code>ReactElement</code> 是 <code>React</code> 用来描述真实 <code>DOM</code> 元素的制造出来的 <code>js</code> 对象，其主要属性如下表：</p><table><thead><tr><th>name</th><th>type</th><th>description</th></tr></thead><tbody><tr><td>key</td><td>Key / null</td><td>元素唯一标识</td></tr><tr><td>type</td><td>string / ComponentType</td><td>元素类型（字符串代表 <code>DOM Element</code>，函数和类代表 <code>Component Element</code>）</td></tr><tr><td>props</td><td>object</td><td>元素属性集合</td></tr></tbody></table><p>完整的定义为：</p><pre><code class="language-ts" data-language="ts" data-highlighted-line-numbers="">type Key = string | number;
+type ComponentType&lt;P = {}&gt; = ComponentClass&lt;P&gt; | StatelessComponent&lt;P&gt;;
+
+interface ReactElement&lt;P&gt; {
+  key: Key | null;
+  type: string | ComponentType&lt;P&gt;;
+  props: P;
+}
+</code></pre><h3 id="11-domelement">1.1 <code>DOMElement</code></h3><p>当 <code>ReactElement.type</code> 为 <code>string</code> 时候，<code>ReactElement</code> 可看作 <code>DOMElement</code>，<code>DOMElement</code> 的定义如下：</p><pre><code class="language-ts" data-language="ts" data-highlighted-line-numbers="">interface DOMElement&lt;P extends HTMLAttributes&lt;T&gt; | SVGAttributes&lt;T&gt;, T extends Element&gt; extends ReactElement&lt;P&gt; {
+  type: string;
+  ref: Ref&lt;T&gt;;
+}
+</code></pre><p><code>DOMElement</code> 又分为两大类 <code>ReactHTMLElement</code> 和 <code>ReactSVGElement</code>:</p><pre><code class="language-ts" data-language="ts" data-highlighted-line-numbers="">interface ReactHTMLElement&lt;T extends HTMLElement&gt; extends DetailedReactHTMLElement&lt;AllHTMLAttributes&lt;T&gt;, T&gt; {}
+
+interface DetailedReactHTMLElement&lt;P extends HTMLAttributes&lt;T&gt;, T extends HTMLElement&gt; extends DOMElement&lt;P, T&gt; {
+  type: keyof ReactHTML;
+}
+  
+interface ReactSVGElement extends DOMElement&lt;SVGAttributes&lt;SVGElement&gt;, SVGElement&gt; {
+  type: keyof ReactSVG;
+}
+</code></pre><h3 id="12-componentelement--sfcelement">1.2 <code>ComponentElement</code> &amp; <code>SFCElement</code></h3><p><code>ReactElement.type</code> 类型为 <code>string | ComponentType</code>，其中 <code>ComponentType</code> 的类型定义如下：</p><pre><code class="language-ts" data-language="ts" data-highlighted-line-numbers="">type ComponentType&lt;P = {}&gt; = ComponentClass&lt;P&gt; | StatelessComponent&lt;P&gt;;
+</code></pre><ul><li><code>ComponentClass</code>:
+<code>ComponentClass</code> 即代表 <code>class</code> 类型的组件，它有自己的构造函数 <code>Component</code>， <code>ComponentClass</code> 定义如下：</li></ul><pre><code class="language-ts" data-language="ts" data-highlighted-line-numbers="">// 基本 ComponentClass
+interface ComponentClass&lt;P = {}&gt; {
+  new (props?: P, context?: any): Component&lt;P, ComponentState&gt;;
+  propTypes?: ValidationMap&lt;P&gt;;
+  contextTypes?: ValidationMap&lt;any&gt;;
+  childContextTypes?: ValidationMap&lt;any&gt;;
+  defaultProps?: Partial&lt;P&gt;;
+  displayName?: string;
+}
+
+// ClassicComponentClass 继承自 ComponentClass
+interface ClassicComponentClass&lt;P = {}&gt; extends ComponentClass&lt;P&gt; {
+  new (props?: P, context?: any): ClassicComponent&lt;P, ComponentState&gt;;
+  getDefaultProps?(): P;
+}
+</code></pre><p>由 <code>ComponentClass</code> 构造出来的 <code>ReactElement</code> 叫做 <code>ComponentElement</code>，定义如下：</p><pre><code class="language-ts" data-language="ts" data-highlighted-line-numbers="">interface ComponentElement&lt;P, T extends Component&lt;P, ComponentState&gt;&gt; extends ReactElement&lt;P&gt; {
+  type: ComponentClass&lt;P&gt;;
+  ref?: Ref&lt;T&gt;;
+}
+</code></pre><ul><li><code>StatelessComponent</code>:
+<code>StatelessComponent</code> 即无状态组件，简称 <code>SFC</code>，定义如下：</li></ul><pre><code class="language-ts" data-language="ts" data-highlighted-line-numbers="">type SFC&lt;P = {}&gt; = StatelessComponent&lt;P&gt;;
+
+interface StatelessComponent&lt;P = {}&gt; {
+  (props: P &amp; { children?: ReactNode }, context?: any): ReactElement&lt;any&gt; | null;
+  propTypes?: ValidationMap&lt;P&gt;;
+  contextTypes?: ValidationMap&lt;any&gt;;
+  defaultProps?: Partial&lt;P&gt;;
+  displayName?: string;
+}
+</code></pre><p>由 <code>SFC</code> 构造出来的 <code>ReactElement</code> 叫做 <code>SFCElement</code>，定义如下：</p><pre><code class="language-ts" data-language="ts" data-highlighted-line-numbers="">interface SFCElement&lt;P&gt; extends ReactElement&lt;P&gt; {
+  type: SFC&lt;P&gt;;
+}
+</code></pre><p>可以看出，与 <code>DOMElement</code> 与 <code>ComponentElement</code> 相比，<code>SFCElement</code> 不含 <code>ref</code></p><h2 id="2-component">2. <code>Component</code></h2><p><code>Component</code> 继承自 <code>ComponentLifecycle</code>（组件生命周期），同时通过 <code>Component</code> 又派生出 <code>PureComponent</code> 和 <code>ClassicComponent</code>，定义如下：</p><pre><code class="language-ts" data-language="ts" data-highlighted-line-numbers="">interface ComponentLifecycle&lt;P, S&gt; {
+  componentWillMount?(): void;
+  componentDidMount?(): void;
+  componentWillReceiveProps?(nextProps: Readonly&lt;P&gt;, nextContext: any): void;
+  shouldComponentUpdate?(nextProps: Readonly&lt;P&gt;, nextState: Readonly&lt;S&gt;, nextContext: any): boolean;
+  componentWillUpdate?(nextProps: Readonly&lt;P&gt;, nextState: Readonly&lt;S&gt;, nextContext: any): void;
+  componentDidUpdate?(prevProps: Readonly&lt;P&gt;, prevState: Readonly&lt;S&gt;, prevContext: any): void;
+  componentWillUnmount?(): void;
+}
+
+interface Component&lt;P = {}, S = {}&gt; extends ComponentLifecycle&lt;P, S&gt; { }
+  class Component&lt;P, S&gt; {
+    constructor(props?: P, context?: any);
+    setState&lt;K extends keyof S&gt;(
+      state: ((prevState: Readonly&lt;S&gt;, props: P) =&gt; (Pick&lt;S, K&gt; | S)) | (Pick&lt;S, K&gt; | S),
+      callback?: () =&gt; any
+    ): void;
+
+    forceUpdate(callBack?: () =&gt; any): void;
+    render(): JSX.Element | null | false;
+
+    props: Readonly&lt;{ children?: ReactNode }&gt; &amp; Readonly&lt;P&gt;;
+    state: Readonly&lt;S&gt;;
+    context: any;
+    refs: {
+      [key: string]: ReactInstance
+    };
+}
+
+class PureComponent&lt;P = {}, S = {}&gt; extends Component&lt;P, S&gt; { }
+
+interface ClassicComponent&lt;P = {}, S = {}&gt; extends Component&lt;P, S&gt; {
+  replaceState(nextState: S, callback?: () =&gt; any): void;
+  isMounted(): boolean;
+  getInitialState?(): S;
+}
+</code></pre><h2 id="3-reactinstance">3. <code>ReactInstance</code></h2><p><code>ReactInstance</code> 既可以是 <code>Component</code> 的实例，也可以是一个 <code>Element</code>（最基础的元素）</p><pre><code class="language-ts" data-language="ts" data-highlighted-line-numbers="">type ReactInstance = Component&lt;any&gt; | Element
+</code></pre><h2 id="4-reactnode">4. <code>ReactNode</code></h2><pre><code class="language-ts" data-language="ts" data-highlighted-line-numbers="">type ReactText = string | number;
+type ReactChild = ReactElement&lt;any&gt; | ReactText;
+
+interface ReactNodeArray extends Array&lt;ReactNode&gt; {}
+type ReactFragment = {} | ReactNodeArray;
+
+type ReactNode = ReactChild | ReactFragment | boolean | null | undefined;
+</code></pre><h2 id="5-syntheticevent">5. <code>SyntheticEvent</code></h2><pre><code class="language-ts" data-language="ts" data-highlighted-line-numbers="">interface SyntheticEvent&lt;T&gt; {
+  bubbles: boolean;
+  currentTarget: EventTarget &amp; T;
+  cancelable: boolean;
+  defaultPrevented: boolean;
+  eventPhase: number;
+  isTrusted: boolean;
+  nativeEvent: Event;
+  preventDefault(): void;
+  isDefaultPrevented(): boolean;
+  stopPropagation(): void;
+  isPropagationStopped(): boolean;
+  persist(): void;
+  target: EventTarget;
+  timeStamp: number;
+  type: string;
+}
+</code></pre><p>参考资料：</p><blockquote><p><a href="https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/react/v15/index.d.ts">https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/react/v15/index.d.ts</a><a href="https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/react/global.d.ts">https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/react/global.d.ts</a><a href="https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/react/index.d.ts">https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/react/index.d.ts</a></p></blockquote></div>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[webkit 浏览器架构]]></title>
+            <link>/blog/posts/2019-04-26/webkit-structure/</link>
+            <guid>/blog/posts/2019-04-26/webkit-structure/</guid>
+            <content:encoded><![CDATA[<div><h2 id="process-and-thread">Process and Thread.</h2><ul><li>thread 是 process 的一部分</li></ul><p><img src="https://developers.google.com/web/updates/images/inside-browser/part1/process-thread.png" alt="process and threads"/></p><ul><li>可以开启多个 process，process 之间通过  <strong>IPC（Inter Process Communication）</strong>  交互。</li></ul><h2 id="浏览器架构">浏览器架构</h2><p><img src="https://developers.google.com/web/updates/images/inside-browser/part1/browserui.png" alt="Chrome processes"/></p><table><thead><tr><th>process 类型</th><th>内容</th></tr></thead><tbody><tr><td>Browser</td><td>1. chrome 应用。包含 address bar, bookmarks, back and forward buttons. 2. 还处理Web浏览器的不可见特权部分，例如网络请求和文件访问。</td></tr><tr><td>Renderer</td><td>tab 内容展示</td></tr><tr><td>Plugin</td><td>浏览器插件，比如 flash</td></tr><tr><td>GPU</td><td>处理其他 process 的 GPU 任务</td></tr></tbody></table><ul><li>每个 Tab/iframe 会运行一个独立的 render process。<ul><li>独立 render process 可以当某个 Tab 崩溃，其他 Tab 正常工作</li><li>独立 render process 保证了每个 iframe 访问的数据必须满足 same origin(同源政策) 。</li></ul></li></ul><h2 id="页面跳转">页面跳转</h2><p><img src="https://developers.google.com/web/updates/images/inside-browser/part2/browserprocesses.png" alt="thread"/></p><p>从 browser process 开始，包含 UI thread / Network thread / storage thread</p><h3 id="步骤：">步骤：</h3><ul><li><p>输入网址</p></li><li><p>回车确认</p><ul><li>UI thread 初始化请求， network thread 查询 DNS / 建立 TLS 连接。此时 UI thread 使 tab 转圈圈。</li><li>这个过程中 network thread 与 UI thread 会相互通信，比如301，network 会让 UI thread 重新请求</li></ul></li><li><p>接收请求</p><ul><li><p>MIME-TYPE 校验</p></li><li><p>跨域校验</p></li><li><p>根据 MIME-TYPE 渲染数据</p></li></ul></li></ul><p><img src="https://developers.google.com/web/updates/images/inside-browser/part2/response.png" alt="HTTP response"/></p><ul><li><p>如果请求是 HTML ，则渲染页面</p><ul><li>UI thread 寻找对应的 renderer process 渲染</li></ul></li><li><p>renderer process 执行渲染</p></li><li><p>渲染完成</p><ul><li>render process 通知 browser process </li></ul></li><li><p>如果有新的 url 输入，页面需要跳转</p><ul><li>browser process 通知 render process 处理 unloaded 事件</li></ul></li></ul><h3 id="service-worker">service worker</h3><blockquote><p>service worker 会对 network 做代理，允许用户选择读取 cache 还是发送请求获取新数据。</p></blockquote><p><strong>service worker</strong> 是 js 脚本，在 render process 中运行。但是 network thread 存在在 browser process 中，browser process 要如何知晓 render process 中存在 service worker 呢？</p><p>注册 service worker 时，会在 Network thread 中留下引用值。<a href="https://developers.google.com/web/fundamentals/primers/service-workers/lifecycle">相关链接</a></p><h2 id="renderer-process-处理页面渲染">renderer process 处理页面渲染</h2><p><img src="https://developers.google.com/web/updates/images/inside-browser/part3/renderer.png" alt="Renderer process"/></p><ul><li>Main thread 会处理大部分内容，包括 parsing / style 计算 / layout 构建 / paint 操作/ js 执行</li><li>composition 则在单独的 compositor 执行</li></ul><h3 id="parsing">parsing</h3><ul><li>解析 DOM。对错误处理友好。</li><li>可以边解析 DOM，边请求 <code>&lt;img/&gt;</code> 等资源</li><li>js 会 block parsing</li></ul><blockquote><p><code>&lt;script&gt;</code> 标签添加 async / defer。这样不会阻断主流程
+<code>&lt;link rel=&quot;preload&quot;&gt;</code> 添加 preload 标志，告诉浏览器你希望这个资源能尽快下载.</p></blockquote><h3 id="style-计算">style 计算</h3><p><img src="https://developers.google.com/web/updates/images/inside-browser/part3/computedstyle.png" alt="computed style"/></p><h3 id="layout">Layout</h3><p>浏览器会构建一个与 DOM 树类似的树，展示 x, y, width, height 信息。伪类元素也会在这个阶段应用。</p><p><img src="https://developers.google.com/web/updates/images/inside-browser/part3/layout.png" alt="layout"/></p><h3 id="paint">paint</h3><p>在这个阶段还需计算组件的 order。Layout 树会被遍历产生一个 Paint Record.</p><p><img src="https://developers.google.com/web/updates/images/inside-browser/part3/paint.png" alt="paint records"/></p><ul><li>以 pipeline 的方式进行更新</li></ul><p><img src="https://github.com/wulucxy/blog/tree/master/src/routes/posts/2019-04-26-webkit-structure/image/pipeline.png" alt="image-20190422224904804"/></p><ul><li>js 也在 main thread 中进行，会阻碍渲染</li></ul><p><img src="https://developers.google.com/web/updates/images/inside-browser/part3/pagejank2.png" alt="jage jank by JavaScript"/></p><p>可以将 js 操作颗粒化，可以使用 requestAnimationFrame() / web worker</p><p><img src="https://developers.google.com/web/updates/images/inside-browser/part3/raf.png" alt="request animation frame"/></p><h3 id="compositing-合成">compositing 合成</h3><p><img src="http://git.caimi-inc.com/client/papaya-blog/uploads/d29d4e6a16ea2e29955a8fdf37293659/Apr-25-2019_23-01-04.gif" alt="Apr-25-2019_23-01-04"/></p><p>compositing 则是将 page 分成不同的 layer, 对每个 layer 都进行 raster(光栅化)，然后在  <em>compositor thread</em> 上合成(composition).
+页面滚动时因为 layer 都已经 raster 完成，只需要合成。</p><p>composition 会根据 Layout tree, 构建一棵 layer tree。不是一个Element 一个layer, 具体如下 <a href="https://developers.google.com/web/fundamentals/performance/rendering/stick-to-compositor-only-properties-and-manage-layer-count">Stick to Compositor-Only Properties and Manage Layer Count</a></p><blockquote><p>compositing 不在 main thread 上完成，不需要等待  style 计算、js 执行.</p></blockquote><h3 id="css-对各个阶段的影响">CSS 对各个阶段的影响</h3><p>详情见： <a href="https://www.html5rocks.com/en/tutorials/speed/high-performance-animations/">https://www.html5rocks.com/en/tutorials/speed/high-performance-animations/</a></p><ul><li>transform 与 opacity 会在compositor thread 中处理，不会影响主线程。</li><li>回流(reflows) 影响了 layout，重绘(repaint) 影响了 paint 过程</li></ul><p>如何减少回流与重绘：
+<a href="https://www.zhangxinxu.com/wordpress/2010/01/%E5%9B%9E%E6%B5%81%E4%B8%8E%E9%87%8D%E7%BB%98%EF%BC%9Acss%E6%80%A7%E8%83%BD%E8%AE%A9javascript%E5%8F%98%E6%85%A2%EF%BC%9F/">ZXX 回流与重绘</a></p><h2 id="参考文献">参考文献</h2><ul><li><a href="https://developers.google.com/web/updates/2018/09/inside-browser-part1">本文英文原文</a> </li><li><a href="https://blog.logrocket.com/eliminate-content-repaints-with-the-new-layers-panel-in-chrome-e2c306d4d752">eliminate-content-repaints-with-the-new-layers-panel</a></li><li><a href="https://www.html5rocks.com/en/tutorials/speed/high-performance-animations/">high-performance-animations</a></li><li><a href="https://www.html5rocks.com/zh/tutorials/speed/layers/">Accelerated Rendering in Chrome</a></li></ul></div>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[大型项目 typescript + redux 实践]]></title>
+            <link>/blog/posts/2019-08-01/typescript-redux/</link>
+            <guid>/blog/posts/2019-08-01/typescript-redux/</guid>
+            <content:encoded><![CDATA[<div><p><img src="https://github.com/wulucxy/blog/tree/master/src/routes/posts/2019-08-01-typescript-redux/image/ts.png" alt="image"/></p><h3 id="前言">前言</h3><p>typescript 是一个有着类型定义的 js 语言的超集。typescript 支持最新的 ESMAScript 特性，并且支持泛型、类型定义等静态语言特征，<strong>是为了大规模应用而生</strong>。我们团队之前在内部一些项目中初步尝试了 <code>React + Redux + TypeScript</code> 组合。本文则尝试梳理基于 <code>typescript</code> 如何更合理的架构 <code>redux</code>。</p><h2 id="一-环境配置">一. 环境配置</h2><p>当前 <code>ts + react</code> 项目基础配置如下：</p><ul><li>编译：@babel/preset-typescript</li><li>开发、打包：parcel</li><li>语法校验：eslint、tsc</li></ul><p>其中引入 <code>babel/preset</code> 来替代 <code>ts-loader</code>，这样既解决了 ts 工程化构建效率问题，同时不影响类型校验，还统一了编译工具。</p><p>接入 <code>babel</code> 以后，需要对 <code>tsconfig</code> 规则稍作修改，此时 ts 的定位仅仅是类型校验，代码编译的工作就完全交给 <code>babel</code> 来处理了。</p><p><em>tsconfig.json</em></p><pre><code>{
+  &quot;compilerOptions&quot;: {
+    // 解析为最新版本的es版本，babel 负责后续的编译
+    &quot;target&quot;: &quot;esnext&quot;,
+    &quot;module&quot;: &quot;esnext&quot;,
+    // ts 的解析规则
+    &quot;lib&quot;: [&quot;esnext&quot;, &quot;dom&quot;],
+    // 绝对地址按照 node_modules 解析
+    &quot;moduleResolution&quot;: &quot;node&quot;,
+    // 开启 jsx
+    &quot;jsx&quot;: &quot;react&quot;,
+    // 不执行构建，交由 babel 执行
+    &quot;noEmit&quot;: true,
+    // 严格模式，包括 strictNullChecks &amp; noImplicitAny.
+    &quot;strict&quot;: true,
+    // 跳过三方包检查
+    &quot;skipLibCheck&quot;: true,
+    // any 类型不警告
+    &quot;noImplicitAny&quot;: true,
+    // 关闭 null 严格检查
+    &quot;strictNullChecks&quot;: false,
+    // 将每个文件作为单独的模块
+    &quot;isolatedModules&quot;: true,
+    // Import non-ES modules as default imports.
+    &quot;esModuleInterop&quot;: true
+  },
+  &quot;include&quot;: [&quot;src&quot;]
+}
+</code></pre><p>接下来还需要配置 <code>eslint</code> 规则：</p><p><em>.eslintrc</em></p><pre><code>{
+  &quot;parser&quot;: &quot;@typescript-eslint/parser&quot;,
+  &quot;parserOptions&quot;: {
+    &quot;project&quot;: &quot;./tsconfig.json&quot;,
+    &quot;ecmaVersion&quot;: 2018
+  },
+  &quot;extends&quot;: [
+    &quot;@wac/standard/react&quot;,
+    &quot;plugin:@typescript-eslint/recommended&quot;,
+    &quot;prettier&quot;,
+    &quot;prettier/@typescript-eslint&quot;
+  ],
+  &quot;plugins&quot;: [&quot;@typescript-eslint&quot;],
+  &quot;rules&quot;: {
+    // 自定义 lint 规则
+    &quot;react/prop-types&quot;: false,
+    &quot;@typescript-eslint/no-explicit-any&quot;: &quot;warn&quot;
+  }
+ }
+</code></pre><p>最后一步就是在 <code>package.json</code> 里面添加脚本命令了：</p><p><em>package.json</em></p><pre><code>&quot;scripts&quot;: {
+  &quot;start&quot;: &quot;parcel src/public/index.html --open&quot;,
+  &quot;prebuild&quot;: &quot;npm run build:clean&quot;,
+  &quot;build:clean&quot;: &quot;rimraf ./dist&quot;,
+  &quot;build&quot;: &quot;parcel build src/public/index.html --no-source-maps&quot;,
+  &quot;lint&quot;: &quot;eslint src --fix --format codeframe&quot;,
+  &quot;lint-staged&quot;: &quot;lint-staged&quot;,
+  &quot;ts-compile-check&quot;: &quot;tsc --pretty -p tsconfig.json&quot;
+}
+</code></pre><p>以上，我们就实现了一套完整工程化能力的 <code>typescript</code> 开发环境了。</p><blockquote><p>let’s RUN~~~</p></blockquote><p><img src="https://github.com/wulucxy/blog/tree/master/src/routes/posts/2019-08-01-typescript-redux/image/run.png" alt="run"/></p><h2 id="二-数据和分层">二. 数据和分层</h2><h3 id="1-目录结构">1. 目录结构</h3><p>目录即分层，一个好的目录结构能够让我们在开发中更加得心应手。在开发 redux 应用中，有一种普遍的做法是根据 <code>action</code>, <code>reducer</code> 功能进行分层，一个典型的应用是这样的：</p><pre><code>.
+|-- actions             // 全局 action
+|-- components          // 公共组件
+|   |-- Footer.tsx
+|   |-- Header.tsx
+|-- pages               // 页面
+|   |-- home
+|      |-- components  // 组件入口  
+|      `-- index.tsx   // 页面入口 
+|-- reducers           // 全局 reducer
+|-- store              // store 入口
+|-- types.d.ts         // 三方类型声明
+</code></pre><p>在实际开发中，开发往往会在不同文件中来回跳跃，尤其是当项目文件膨胀以后，在不同文件中跳跃式寻找会占据很大比例的时间。基于此，社区开始流行另外一种开发方式，俗称「ducks」规则，简而言之就是将 <code>action</code>, <code>reducer</code>，<code>actionType</code> 放在一起进行管理，<a href="https://github.com/erikras/ducks-modular-redux">参考链接</a>。 其中 <code>ducks</code> 命名来自于<code>redux</code> 结尾音。</p><p><strong>ducks</strong></p><pre><code>.
+|-- components           // 公共组件
+|   |-- Footer.tsx
+|   |-- Header.tsx
+|-- pages
+|   |-- home
+|   |  |-- index.ts      // 页面入口
+|   |  |-- components    // 组件
+|   |  |-- types.ts      // 类型声明
+|   |  `-- reducer.ts    // action/reducer
+|-- store                 // redux store 入口
+|-- types.d.ts            // 三方组件类型声明
+</code></pre><h3 id="2-数据不可变性">2. 数据不可变性</h3><p>在 redux 开发中，需要遵循的一个原则是<code>数据不可变性 (immutable)</code>，每个 reducer 不能修改原始值，而只能返回一个新的 state。</p><p>在 接触 <code>typescript</code> 之前，<a href="https://immutable-js.github.io/immutable-js/">immutable.js</a> 是结合 redux 实现数据不可变的最佳辅助工具。然而，<code>immutable.js</code> 对 <code>ts</code> 的支持就一言难尽了，这两者都是很好的工具，但是放在一起，却是那么的不合适。</p><p>所以我们在实际项目中尝试了使用 <a href="https://github.com/immerjs/immer">immer</a> 来实现数据持久化，<code>immer</code> 通过 <code>proxy</code> 实现了用原生 js 语法实现了数据不可变。虽然写起来没有像 <code>immutable.js</code> 函数式写法那么爽，但至少能用。</p><blockquote><p>后续，我们仍然会探索基于 <code>immutable.js</code> 的 <code>typescript</code> 写法，不再本文范畴之内。</p></blockquote><h3 id="3-store">3. Store</h3><p>在 <code>Store</code> 中我们将 <code>reducer</code> 进行聚合，并对外导出应用级别的状态数据。</p><p><em>src/store/root-reducers.ts</em></p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token comment">// 页面 reducer 聚合</span>
+<span class="token keyword">import</span> <span class="token punctuation">{</span> ReducersMapObject <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">"redux"</span>
+<span class="token comment">// 导入每个页面独立的 reducer 和 类型声明</span>
+<span class="token keyword">import</span> bitcoin <span class="token keyword">from</span> <span class="token string">"../pages/basic/reducer"</span><span class="token punctuation">;</span>
+<span class="token keyword">import</span> <span class="token punctuation">{</span> BitcoinState <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">"../pages/basic/types"</span><span class="token punctuation">;</span>
+
+<span class="token comment">// 应用级数据类型接口</span>
+<span class="token keyword">export</span> <span class="token keyword">interface</span> <span class="token class-name">AppState</span> <span class="token punctuation">{</span>
+  bitcoin<span class="token operator">:</span> BitcoinState<span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">const</span> reducers<span class="token operator">:</span> ReducersMapObject <span class="token operator">=</span> <span class="token punctuation">{</span>
+  bitcoin
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+<span class="token keyword">export</span> <span class="token keyword">default</span> reducers 
+</code></pre><p><em>src/store/create.ts</em></p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token comment">// 导入 redux 和 immer 相应的方法</span>
+<span class="token keyword">import</span> <span class="token punctuation">{</span> createStore<span class="token punctuation">,</span> Reducer <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'redux'</span>
+<span class="token keyword">import</span> produce <span class="token keyword">from</span> <span class="token string">"immer"</span>
+<span class="token keyword">import</span> <span class="token punctuation">{</span> combineReducers <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">"redux-immer"</span>
+
+<span class="token comment">// 聚合后的 reducer 和顶层应用数据</span>
+<span class="token keyword">import</span> reducers<span class="token punctuation">,</span> <span class="token punctuation">{</span> AppState <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">"./root-reducer"</span>
+
+<span class="token comment">// 通过 combineReducer 将 reducer 合并为一</span>
+<span class="token comment">// 注意这里的 combineReducers 是基于 immer 的实现</span>
+<span class="token keyword">const</span> rootReducer<span class="token operator">:</span> Reducer<span class="token operator">&lt;</span>AppState<span class="token operator">></span> <span class="token operator">=</span> <span class="token function">combineReducers</span><span class="token punctuation">(</span>produce<span class="token punctuation">,</span> reducers<span class="token punctuation">)</span>
+
+<span class="token comment">// 导出 store</span>
+<span class="token keyword">export</span> <span class="token keyword">default</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">initialState <span class="token operator">=</span> <span class="token punctuation">{</span><span class="token punctuation">}</span></span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  <span class="token keyword">return</span> <span class="token function">createStore</span><span class="token punctuation">(</span>
+    rootReducer<span class="token punctuation">,</span>
+    initialState<span class="token punctuation">,</span>
+    <span class="token function">applyMiddleware</span><span class="token punctuation">(</span>Thunk<span class="token punctuation">,</span> promiseMiddleware<span class="token punctuation">,</span> Logger<span class="token punctuation">)</span>
+  <span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+</code></pre><h3 id="4-声明类型文件-dts">4. 声明类型文件 .d.ts</h3><p>我们在项目中会依赖到很多三方、二方包仍然是用纯 js 实现的，将这些代码重构为 <code>typescript</code> 显然是不现实的，ts 的做法是我们可以声明 <code>.d.ts</code> 类型文件将三方包引入到 ts 工程中。</p><p><code>.d.ts</code> 中 <code>d</code> 的含义是 <code>declaration</code> 即声明，实际使用我们无需关注具体实现，而只需要导出类型声明即可。</p><p>最简单的声明文件是这样的：</p><pre><code>declare module &#x27;@wac/r3&#x27;
+</code></pre><p>但是如果你的项目中类型声明非常重要的话，建议到 <a href="https://github.com/DefinitelyTyped/DefinitelyTyped">DefinitelyTyped</a> 查看更多优质类型定义文件，并贡献自己的力量。</p><p>在声明类型文件还有一种<strong>取巧的做法</strong>是定义全局类型，全局类型无需导入即可对所有文件可见，举例：</p><p><em>typing.d.ts</em></p><pre><code>interface IUser {
+  name: string
+  phone: number
+}
+</code></pre><p>定义好之后你在任意文件中都可以直接使用该类型。</p><p>实际上这样做有可商榷之处，在导入三方类型声明的文件中，用来声明当前应用的全局类型。这样的做法 <a href="https://stackoverflow.com/questions/42233987/how-to-configure-custom-global-interfaces-d-ts-files-for-typescript">社区并不推荐</a>。实际上你应该定义一个独立的 <code>.ts</code> 文件，然后通过 <code>export/import</code> 来引用。</p><h2 id="三-reducer">三. reducer</h2><p>前面我们提到将 <code>reducer</code>，<code>action</code>，<code>actionType</code> 按照 <code>ducks</code> 规则统一到一个文件中管理, 并且将<strong>类型声明</strong>也统一到一个文件。接下来我们展开来介绍这部分内容：</p><h3 id="1-types">1. types</h3><p><code>actionType</code> 是一种可枚举类型：</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">export</span> <span class="token keyword">enum</span> BitcoinActionTypes <span class="token punctuation">{</span>
+  <span class="token comment">// 请求比特币周期价格指数</span>
+  <span class="token constant">BITCOIN_QUERY_LIST</span> <span class="token operator">=</span> <span class="token string">"BITCOIN_QUERY_LIST"</span><span class="token punctuation">,</span>
+  <span class="token comment">// 请求比特币当前价格</span>
+  <span class="token constant">BITCOIN_QUERY_CURRENCY</span> <span class="token operator">=</span> <span class="token string">"BITCOIN_QUERY_CURRENCY"</span><span class="token punctuation">,</span>
+  <span class="token comment">// 设置当前过滤条件</span>
+  <span class="token constant">BITCOIN_SET_FILTER</span> <span class="token operator">=</span> <span class="token string">"BITCOIN_SET_FILTER"</span>
+<span class="token punctuation">}</span>
+</code></pre><p>通过枚举类型结合 <code>typescript</code> 的强类型自动推导能力，可以实现开发自动输入补全：
+<img src="https://github.com/wulucxy/blog/tree/master/src/routes/posts/2019-08-01-typescript-redux/image/infer.png" alt="enum"/></p><h3 id="2-actions">2. actions</h3><p>redux 中的 <code>action</code> 分为两类：同步和异步。</p><p><strong>同步 action</strong></p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">import</span> <span class="token punctuation">{</span> BitcoinActionTypes <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">"./types"</span><span class="token punctuation">;</span>
+
+<span class="token keyword">export</span> <span class="token keyword">const</span> <span class="token function-variable function">setFilterType</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">filterType<span class="token operator">:</span> string</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">(</span><span class="token punctuation">{</span>
+  type<span class="token operator">:</span> BitcoinActionTypes<span class="token punctuation">.</span><span class="token constant">BITCOIN_SET_FILTER</span><span class="token punctuation">,</span>
+  payload<span class="token operator">:</span> <span class="token punctuation">{</span> filterType <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre><p>借助 <code>typeof</code> 关键词，我们在<code>types</code> 文件中非常方便地导出类型：</p><p><em>types.ts</em></p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">import</span> <span class="token punctuation">{</span> setFilterType <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">"./reducer"</span><span class="token punctuation">;</span>
+<span class="token keyword">export</span> type SetFilterType <span class="token operator">=</span> <span class="token keyword">typeof</span> setFilterType<span class="token punctuation">;</span>
+</code></pre><p><strong>异步 action</strong></p><p>在项目中我们使用了 <a href="https://github.com/pburtchaell/redux-promise-middleware">redux-promise-middleware</a> 进行异步 action 的管理，异步 action 会返回 promise，但是写法仍然沿用同步 action 的写法。</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">import</span> <span class="token punctuation">{</span> AsyncAction <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">"redux-promise-middleware"</span><span class="token punctuation">;</span>
+
+<span class="token keyword">export</span> <span class="token keyword">const</span> queryBPICurrency <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">:</span> <span class="token parameter">AsyncAction</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+  <span class="token keyword">return</span> <span class="token punctuation">{</span>
+    type<span class="token operator">:</span> BitcoinActionTypes<span class="token punctuation">.</span><span class="token constant">BITCOIN_QUERY_CURRENCY</span><span class="token punctuation">,</span>
+    <span class="token comment">// 这里这里payload 实际返回的是 promise</span>
+    payload<span class="token operator">:</span> axios<span class="token punctuation">.</span><span class="token function">get</span><span class="token punctuation">(</span><span class="token string">"//api.coindesk.com/v1/bpi/currentprice/cny.json"</span><span class="token punctuation">)</span>
+  <span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+</code></pre><p>注意这里的 <code>AsyncAction</code> 来自 <code>redux-promise-middleware</code> 的 <a href="https://github.com/pburtchaell/redux-promise-middleware/blob/master/src/index.d.ts">类型定义</a>。</p><p>通过 <code>typeof</code> 类型推导:</p><p><em>types.ts</em></p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">import</span> <span class="token punctuation">{</span> queryBPI <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">"./reducer"</span><span class="token punctuation">;</span>
+<span class="token keyword">export</span> type QueryBPI <span class="token operator">=</span> <span class="token keyword">typeof</span> queryBPI
+</code></pre><p>结果如下：</p><pre><code>type QueryBPI = (params: BPIParams) =&gt; AsyncAction
+</code></pre><h3 id="3reducer">3.reducer</h3><p>结合<code>redux-promise-middleware</code>，<code>type-to-reducer</code> 和 <code>immer</code>，我们来完成具备类型的 <code>reducer</code>。</p><p><em>types.ts</em></p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token comment">// state 类型</span>
+<span class="token comment">// 其中 Record 泛型是 `{ [key: string]: T }` 的简写</span>
+<span class="token keyword">export</span> <span class="token keyword">interface</span> <span class="token class-name">BitcoinState</span> <span class="token punctuation">{</span>
+  filterType<span class="token operator">:</span> string<span class="token punctuation">;</span>
+  requestLoading<span class="token operator">:</span> boolean<span class="token punctuation">;</span>
+  currentPrice<span class="token operator">:</span> Record<span class="token operator">&lt;</span>string<span class="token punctuation">,</span> BitcoinPrice<span class="token operator">></span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre><p><strong>reducer.ts</strong></p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">import</span> typeToReducer <span class="token keyword">from</span> <span class="token string">"type-to-reducer"</span><span class="token punctuation">;</span>
+<span class="token keyword">import</span> <span class="token punctuation">{</span> BitcoinActionTypes<span class="token punctuation">,</span> BPIParams <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">"./types"</span><span class="token punctuation">;</span>
+
+<span class="token comment">// 导出 reducer</span>
+<span class="token keyword">export</span> <span class="token keyword">default</span> <span class="token function">typeToReducer</span><span class="token punctuation">(</span>
+  <span class="token comment">// 同步 action</span>
+  <span class="token punctuation">[</span>BitcoinActionTypes<span class="token punctuation">.</span><span class="token constant">BITCOIN_SET_FILTER</span><span class="token punctuation">]</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">state<span class="token punctuation">,</span> action</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+    <span class="token keyword">const</span> <span class="token punctuation">{</span> filterType <span class="token punctuation">}</span> <span class="token operator">=</span> action<span class="token punctuation">.</span>payload<span class="token punctuation">;</span>
+    <span class="token comment">// immer 包装后可以直接用原生 js 修改值</span>
+    state<span class="token punctuation">.</span>filterType <span class="token operator">=</span> filterType<span class="token punctuation">;</span>
+    <span class="token keyword">return</span> state<span class="token punctuation">;</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token comment">// 异步action</span>
+  BitcoinActionTypes<span class="token punctuation">.</span><span class="token constant">BITCOIN_QUERY_CURRENCY</span><span class="token punctuation">]</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+    <span class="token function-variable function">PENDING</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">state<span class="token punctuation">,</span> action</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+      state<span class="token punctuation">.</span>requestLoading <span class="token operator">=</span> <span class="token boolean">true</span>
+      <span class="token keyword">return</span> state
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    <span class="token function-variable function">FULFILLED</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">state<span class="token punctuation">,</span> action</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+      <span class="token keyword">const</span> <span class="token punctuation">{</span> bpi <span class="token punctuation">}</span> <span class="token operator">=</span> action<span class="token punctuation">.</span>payload<span class="token punctuation">;</span>
+      state<span class="token punctuation">.</span>currentPrice <span class="token operator">=</span> bpi<span class="token punctuation">;</span>
+      <span class="token keyword">return</span> state<span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">)</span>
+</code></pre><h2 id="四-连接组件">四. 连接组件</h2><p>接下来我们将类型化后的 redux 连接到 React 组件：</p><h3 id="1-connect-连接">1. connect 连接</h3><p>react 组件和 redux 通过 <code>react-redux</code> 的 connect 方法进行连接：</p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">import</span> <span class="token punctuation">{</span> connect <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">"react-redux"</span>
+<span class="token keyword">import</span> <span class="token punctuation">{</span> AppState <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">"../../store/root-reducer"</span><span class="token punctuation">;</span>
+
+<span class="token comment">// 导入类型</span>
+<span class="token keyword">import</span> <span class="token punctuation">{</span>
+  SetFilterType<span class="token punctuation">,</span>
+  QueryBPICurrency<span class="token punctuation">,</span>
+  QueryBPI<span class="token punctuation">,</span>
+  BitcoinState<span class="token punctuation">,</span>
+  BPIParams
+<span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">"./types"</span>
+
+<span class="token comment">// 类型扩展</span>
+<span class="token keyword">interface</span> <span class="token class-name">BasicProps</span> <span class="token keyword">extends</span> <span class="token class-name">BitcoinState</span> <span class="token punctuation">{</span>
+  setFilterType<span class="token operator">:</span> SetFilterType<span class="token punctuation">;</span>
+  queryBPICurrency<span class="token operator">:</span> QueryBPICurrency<span class="token punctuation">;</span>
+  queryBPI<span class="token operator">:</span> QueryBPI<span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token comment">// 这里通过 Class 组件引入类型</span>
+<span class="token comment">// 如果是函数式组件，就使用 React.FC&lt;BasicProps> 声明类型</span>
+<span class="token keyword">class</span> <span class="token class-name">Basic</span> <span class="token keyword">extends</span> <span class="token class-name">React<span class="token punctuation">.</span>Component</span><span class="token operator">&lt;</span>BasicProps<span class="token operator">></span><span class="token punctuation">{</span>
+  <span class="token function">render</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+    <span class="token comment">// do something</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+
+<span class="token comment">// 将 state 数据导出为属性</span>
+<span class="token keyword">const</span> <span class="token function-variable function">select</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">state<span class="token operator">:</span> AppState</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+  <span class="token keyword">const</span> <span class="token punctuation">{</span> bitcoin <span class="token punctuation">}</span> <span class="token operator">=</span> state<span class="token punctuation">;</span>
+  <span class="token keyword">return</span> <span class="token punctuation">{</span>
+    requestLoading<span class="token operator">:</span> bitcoin<span class="token punctuation">.</span>requestLoading<span class="token punctuation">,</span>
+    filterType<span class="token operator">:</span> bitcoin<span class="token punctuation">.</span>filterType<span class="token punctuation">,</span>
+    currentPrice<span class="token operator">:</span> <span class="token keyword">get</span><span class="token punctuation">(</span>bitcoin<span class="token punctuation">,</span> <span class="token string">"currentPrice.CNY"</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">)</span>
+  <span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+<span class="token comment">// 最后一步：完成 redux 和 组件的连接</span>
+<span class="token comment">// 顺便导入一下 action</span>
+<span class="token keyword">export</span> <span class="token keyword">default</span> <span class="token function">connect</span><span class="token punctuation">(</span>
+  select<span class="token punctuation">,</span>
+  <span class="token punctuation">{</span>
+    setFilterType<span class="token punctuation">,</span>
+    queryBPI<span class="token punctuation">,</span>
+    queryBPICurrency
+  <span class="token punctuation">}</span>
+<span class="token punctuation">)</span><span class="token punctuation">(</span>Basic<span class="token punctuation">)</span>
+</code></pre><p>到此，我们就基本上完成了一个 <code>typescript + redux + react</code> 的应用，<em>源码后续会放出</em>。</p><h2 id="总结">总结</h2><blockquote><p>这 ts 有什么用，限制多，运行慢，除了带给我一堆警告，还有什么作用？</p><p>ts 类型声明这么复杂，还引入了这么多新概念，跟框架兼容性又这么差</p><p>我就是辞职，不写前端了，也特么不用巨硬造的假 java</p><p>……</p><p>ts 真香，再也不想用 js 了。</p></blockquote><p>学习 <code>typescript</code> 是一段漫长的旅程，学习 ts 语法并不难，难的是框架对 ts 的支持度。以 React 为例，单单写一个 redux 版本的基础应用就踩了很多坑，甚至为了写 ts 不得不抛弃了<code>immutable.js</code>  — 一个数据不可变函数式工具，更不用提社区数量繁多的其他三方库了。</p><p>ts 不是银弹，ts 无法解决你的代码结构问题，也不能避免语法 Bug，<strong>”彼之蜜糖,吾之毒药“</strong>，当 ts 类型使用不当的时候，强行接入反而会给你造成更大的困扰。</p><p><strong>ts 适合什么场景？</strong></p><p>我个人认为:</p><ol><li><p>中大型项目，需要长期维护的项目，底层库 or 框架</p></li><li><p>上一条的前提是，项目主要依赖的类库对 ts 支持良好，最好有业界的先行案例</p></li></ol><p>所以用一些冷门框架或者小项目的时候我是不建议使用 ts 的，ts 没问题，框架也没问题，框架+ ts 会有很多问题。</p></div>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[查询 + Table 组件设计]]></title>
+            <link>/blog/posts/2020-02-19/table-search-design/</link>
+            <guid>/blog/posts/2020-02-19/table-search-design/</guid>
+            <content:encoded><![CDATA[<div><h3 id="背景--目标">背景 &amp; 目标</h3><p>中后台系统的页面中多是查询+表格的展现形式，为了提高开发效率，减少重复的模版代码的书写，将公共能力收拢到组件，方便用户快速构建页面。</p><h3 id="产品现状">产品现状</h3><p>省略，参考自身业务</p><h3 id="产品要点梳理">产品要点梳理</h3><ol><li><p>查询和表格通常是一一对应，<strong>同时出现</strong> 的，也有场景是 <strong>只有表格，没有查询</strong> 。只有查询，没有表格目前系统很少见（<em>如果有的话，请帮忙补充</em>）。</p></li><li><p>查询组件只涉及到查询功能，不涉及到数据的更新操作，支持1个或多个数据共同查询，<strong>查询字段通常来源于表格字段</strong>，当然也开放自定义字段配置。</p></li><li><p>查询组件需要按列布局，也要支持<strong>展开/收缩</strong>，查询条件可以指定顺序，也可以默认按照表格列的顺序按先后放置，目前查询操作仅限于<strong>查询</strong>和<strong>重置</strong>。</p></li><li><p>表格组件<strong>数据源是动态</strong>的，需要通过查询条件向服务端发起请求，查询条件来自于<strong>查询组件</strong>，服务端请求需要做<strong>竞态处理（onLoad, onRequestError）</strong>，初始请求需要 <code>loading</code> 标识，查询参数来自于查询组件，以及自定义参数组合而成。</p></li><li><p>表格组件展示很灵活，包括 <strong>Title</strong>, <strong>ToolBar</strong>，并且表格组件通常会带有<strong>弹窗操作</strong>，弹窗需要获取当前 <strong>record</strong> 数据，操作完毕需要更新 Table。<code>ToolBar</code> 需要提供全局操作来更新表格（刷新）。</p></li><li><p>表格组件分页操作比较固定，每次查询重置当前页码，<code>page</code> 和 <code>pageSize</code> 变更重新发起请求，这一块公共逻辑需要统一封装，自定义的诉求比较少。</p></li><li><p>表格列组件有很多常见的开发情景：<strong>超出宽度文本<code>ellipsis</code></strong>，<strong>支持文本复制</strong>，<strong>字符filter（金额、时间、日期）</strong>，<strong>枚举状态处理</strong> 等等。列组件配置可以直接复用到查询表单组件上。</p></li></ol><h3 id="技术设计">技术设计</h3><p><code>List</code> 基于 Antd Table 进行扩展，封装了一些常用的 UI 和行为，通过将查询组件和 Table 组合起来，提供给用户一套标准化的组件实现。</p><h4 id="整体架构">整体架构</h4><p><img src="https://github.com/wulucxy/blog/tree/master/src/routes/posts/2020-02-19-table-search-design/image/arc.png" alt="list_设计"/></p><h4 id="组件-展示">组件 展示</h4><p><img src="https://github.com/wulucxy/blog/tree/master/src/routes/posts/2020-02-19-table-search-design/image/ui.png" alt="image"/></p><h4 id="api-设计">api 设计</h4><blockquote><p>该组件基于 <code>Antd Table</code> 扩展，默认支持 Table 所有属性，并且扩展下列其他属性：</p></blockquote><ul><li><p>应用实例</p><ul><li>actionRef：返回应用实例，对外提供公共方法，比如 refresh 等</li><li>formRef：查询表单实例</li><li>showSearch: 不展示查询栏，默认为 false</li></ul></li><li><p>数据请求</p><ul><li>request：返回一个 promise</li><li>params: 请求参数</li><li>onLoad: 每次请求完毕触发</li><li>onRequestError: 请求异常触发回调</li></ul></li><li><p>UI 展示</p><ul><li>Title：表格标题，支持 string 或者 ReactNode</li><li>ToolBar:  自动以工具栏组件，位于标题右侧</li><li>pagination: 继承 Table pagination，封装 page 和 pageSize 能力</li></ul></li><li><p>配置</p><ul><li>提供 columns 作为表格列和查询表单字段</li></ul><pre><code>key,
+dataIndex,
+width,
+render,
+valueType: 封装一些常见的类型filter，比如 dateTime, money 等
+hideInSearch: 查询组件字段是否展示，默认为true
+hideInTable: 不展示在Table 列，默认为 fasle
+enum: 枚举类字段，比如状态（新建，已发布，已暂停等）
+copy: 是否支持拷贝
+ellipsis: 文本溢出自动展示
+renderSearchItem:SearchItem 自定义展示
+searchItemProps: SearchItem 配置
+sort: 查询表单展示优先级
+span: 表单项自定义宽度，优先于 searchConfig.span 执行
+</code></pre></li><li><p>查询表单配置</p><ul><li>onSearch: 查询表单提交触发</li><li>onRest: 重置查询条件</li><li>searchConfig: 查询表单配置<ul><li>span: 列宽度，默认为8，参考 <code>antd cols</code></li><li>isCollpase: 当多行分布时是否折叠，默认为 <code>true</code></li><li>collpaseRows: 2, 最多未折叠展示行数</li><li>searchText: 搜索文本，默认<code>搜索</code></li><li>resetText: 重置文本，默认 <code>重置</code></li><li>collapseRender: 展开/收起 自定义渲染</li><li>needParamsToUrl：查询完毕更新 url，默认<code>false</code></li></ul></li></ul></li></ul><h4 id="列渲染逻辑">列渲染逻辑</h4><p><img src="https://github.com/wulucxy/blog/tree/master/src/routes/posts/2020-02-19-table-search-design/image/columnByTable.png" alt="column"/></p><h4 id="查询表单渲染逻辑">查询表单渲染逻辑</h4><p><img src="https://github.com/wulucxy/blog/tree/master/src/routes/posts/2020-02-19-table-search-design/image/columnBySearch.png" alt="查询表单渲染逻辑"/></p><h4 id="valuetype-设计">valueType 设计</h4><table><thead><tr><th>valueType</th><th>说明</th><th>搜索组件</th><th>Table</th><th>search</th><th>备注</th></tr></thead><tbody><tr><td>money</td><td>金额千分符处理</td><td>InputNumber</td><td>✓</td><td>✓</td><td></td></tr><tr><td>date</td><td>日期处理</td><td>DatePicker</td><td>✓</td><td>✓</td><td></td></tr><tr><td>dateTime</td><td>日期+时间</td><td>DatePicker(showTime)</td><td>✓</td><td>✓</td><td></td></tr><tr><td>time</td><td>时间</td><td>TimePicker</td><td>✓</td><td>✓</td><td></td></tr><tr><td>dateRange</td><td>日期区间</td><td>RangePicker</td><td></td><td>✓</td><td></td></tr><tr><td>dateTimeRange</td><td>日期时间区间</td><td>RangePicker(showTime)</td><td></td><td>✓</td><td></td></tr><tr><td>checkbox</td><td>多选表单组件</td><td>checkbox</td><td></td><td>✓</td><td>Enum 类型</td></tr><tr><td>radio</td><td>单选组件</td><td>radio</td><td></td><td>✓</td><td>Enum 类型</td></tr><tr><td>inputNumber</td><td>数字输入组件</td><td>InputNumber</td><td></td><td>✓</td><td></td></tr><tr><td>textarea</td><td>文本域组件</td><td>TextArea</td><td></td><td>✓</td><td></td></tr></tbody></table></div>]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[welcome]]></title>
             <link>/blog/posts/2020-03-07/welcome/</link>
@@ -15,7 +760,7 @@
 tags<span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">'文章标签1'</span><span class="token punctuation">,</span> <span class="token string">'文章标签2'</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
 spoiler<span class="token operator">:</span> <span class="token string">"文章简略说明"</span><span class="token punctuation">,</span>
 <span class="token function-variable function">getContent</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token keyword">import</span><span class="token punctuation">(</span><span class="token string">'./document.mdx'</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
-</code></pre><p><strong>2. 编辑文章：</strong> 比如要修改当前文章，找到<code>src/routes/posts/2019-01-05-welcome/document.mdx</code>，修改后保存，页面会自动热更新。</p><p><strong>3. 修改页面主题：</strong> 编辑 <code>src/siteMetadata.js</code> metadata 属性。</p><p><strong>4. 编辑全局样式：</strong> 在 <code>src/index.module.css</code> 修改 css 即可.</p><p><strong>5. 代码高亮：</strong> 在对应的代码处添加花括号 {} 及对应行数，如 <code>jsx{1-4,6}</code>：</p><pre><code class="language-jsx" data-language="jsx" data-highlighted-line-numbers="1,2,3,4,6"><span class="highlighted-line"><span class="token keyword">class</span> <span class="token class-name">Parent</span> <span class="token keyword">extends</span> <span class="token class-name">React<span class="token punctuation">.</span>Component</span> <span class="token punctuation">{</span></span><span class="highlighted-line">  <span class="token function">render</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><span class="highlighted-line">    <span class="token keyword">return</span> <span class="token punctuation">(</span></span><span class="highlighted-line">      <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span><span class="token class-name">MyFunctionalComponent</span></span> <span class="token attr-name">ref</span><span class="token script language-javascript"><span class="token script-punctuation punctuation">=</span><span class="token punctuation">{</span><span class="token keyword">this</span><span class="token punctuation">.</span>textInput<span class="token punctuation">}</span></span> <span class="token punctuation">/></span></span></span>    <span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre><p><strong>2. 编辑文章：</strong> 比如要修改当前文章，找到<code>src/routes/posts/2020-03-07-welcome/document.mdx</code>，修改后保存，页面会自动热更新。</p><p><strong>3. 修改页面主题：</strong> 编辑 <code>src/siteMetadata.js</code> metadata 属性。</p><p><strong>4. 编辑全局样式：</strong> 在 <code>src/index.module.css</code> 修改 css 即可.</p><p><strong>5. 代码高亮：</strong> 在对应的代码处添加花括号 {} 及对应行数，如 <code>jsx{1-4,6}</code>：</p><pre><code class="language-jsx" data-language="jsx" data-highlighted-line-numbers="1,2,3,4,6"><span class="highlighted-line"><span class="token keyword">class</span> <span class="token class-name">Parent</span> <span class="token keyword">extends</span> <span class="token class-name">React<span class="token punctuation">.</span>Component</span> <span class="token punctuation">{</span></span><span class="highlighted-line">  <span class="token function">render</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><span class="highlighted-line">    <span class="token keyword">return</span> <span class="token punctuation">(</span></span><span class="highlighted-line">      <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span><span class="token class-name">MyFunctionalComponent</span></span> <span class="token attr-name">ref</span><span class="token script language-javascript"><span class="token script-punctuation punctuation">=</span><span class="token punctuation">{</span><span class="token keyword">this</span><span class="token punctuation">.</span>textInput<span class="token punctuation">}</span></span> <span class="token punctuation">/></span></span></span>    <span class="token punctuation">)</span><span class="token punctuation">;</span>
 <span class="highlighted-line">  <span class="token punctuation">}</span></span><span class="token punctuation">}</span>
 </code></pre><p><strong>7. 发布文章：</strong> 文章编辑完毕，直接 git push 即可，注意需要在 master 分支上操作。</p><h2 id="happy-bloging">happy bloging!</h2></div></div>]]></content:encoded>
         </item>
