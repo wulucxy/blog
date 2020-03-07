@@ -1,4 +1,4 @@
-![image](https://github.com/wulucxy/blog/tree/master/src/routes/posts/2019-08-01-typescript-redux/image/ts.png)
+![image](https://github.com/wulucxy/blog/raw/master/src/routes/posts/2019-08-01-typescript-redux/image/ts.png)
 
 ### 前言
 
@@ -18,7 +18,7 @@ typescript 是一个有着类型定义的 js 语言的超集。typescript 支持
 
 *tsconfig.json*
 
-```
+```json
 {
   "compilerOptions": {
     // 解析为最新版本的es版本，babel 负责后续的编译
@@ -53,7 +53,7 @@ typescript 是一个有着类型定义的 js 语言的超集。typescript 支持
 
 *.eslintrc*
 
-```
+```json
 {
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
@@ -79,7 +79,7 @@ typescript 是一个有着类型定义的 js 语言的超集。typescript 支持
 
 *package.json*
 
-```
+```json
 "scripts": {
   "start": "parcel src/public/index.html --open",
   "prebuild": "npm run build:clean",
@@ -95,7 +95,7 @@ typescript 是一个有着类型定义的 js 语言的超集。typescript 支持
 
 > let's RUN~~~
 
-![run](https://github.com/wulucxy/blog/tree/master/src/routes/posts/2019-08-01-typescript-redux/image/run.png)
+![run](https://github.com/wulucxy/blog/raw/master/src/routes/posts/2019-08-01-typescript-redux/image/run.png)
 
 ## 二. 数据和分层
 
@@ -246,7 +246,7 @@ export enum BitcoinActionTypes {
 }
 ```
 通过枚举类型结合 `typescript` 的强类型自动推导能力，可以实现开发自动输入补全：
-![enum](https://github.com/wulucxy/blog/tree/master/src/routes/posts/2019-08-01-typescript-redux/image/infer.png)
+![enum](https://github.com/wulucxy/blog/raw/master/src/routes/posts/2019-08-01-typescript-redux/image/infer.png)
 
 ### 2. actions
 

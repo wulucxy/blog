@@ -13,7 +13,7 @@
 
 完整的定义为：
 
-```ts
+```javascript
 type Key = string | number;
 type ComponentType<P = {}> = ComponentClass<P> | StatelessComponent<P>;
 
@@ -28,7 +28,7 @@ interface ReactElement<P> {
 
 当 `ReactElement.type` 为 `string` 时候，`ReactElement` 可看作 `DOMElement`，`DOMElement` 的定义如下：
 
-```ts
+```javascript
 interface DOMElement<P extends HTMLAttributes<T> | SVGAttributes<T>, T extends Element> extends ReactElement<P> {
   type: string;
   ref: Ref<T>;
@@ -37,7 +37,7 @@ interface DOMElement<P extends HTMLAttributes<T> | SVGAttributes<T>, T extends E
 
 `DOMElement` 又分为两大类 `ReactHTMLElement` 和 `ReactSVGElement`:
 
-```ts
+```javascript
 interface ReactHTMLElement<T extends HTMLElement> extends DetailedReactHTMLElement<AllHTMLAttributes<T>, T> {}
 
 interface DetailedReactHTMLElement<P extends HTMLAttributes<T>, T extends HTMLElement> extends DOMElement<P, T> {
@@ -53,14 +53,14 @@ interface ReactSVGElement extends DOMElement<SVGAttributes<SVGElement>, SVGEleme
 
 `ReactElement.type` 类型为 `string | ComponentType`，其中 `ComponentType` 的类型定义如下：
 
-```ts
+```javascript
 type ComponentType<P = {}> = ComponentClass<P> | StatelessComponent<P>;
 ```
 
 - `ComponentClass`:
 `ComponentClass` 即代表 `class` 类型的组件，它有自己的构造函数 `Component`， `ComponentClass` 定义如下：
 
-```ts
+```javascript
 // 基本 ComponentClass
 interface ComponentClass<P = {}> {
   new (props?: P, context?: any): Component<P, ComponentState>;
@@ -80,7 +80,7 @@ interface ClassicComponentClass<P = {}> extends ComponentClass<P> {
 
 由 `ComponentClass` 构造出来的 `ReactElement` 叫做 `ComponentElement`，定义如下：
 
-```ts
+```javascript
 interface ComponentElement<P, T extends Component<P, ComponentState>> extends ReactElement<P> {
   type: ComponentClass<P>;
   ref?: Ref<T>;
@@ -90,7 +90,7 @@ interface ComponentElement<P, T extends Component<P, ComponentState>> extends Re
 - `StatelessComponent`:
   `StatelessComponent` 即无状态组件，简称 `SFC`，定义如下：
 
-```ts
+```javascript
 type SFC<P = {}> = StatelessComponent<P>;
 
 interface StatelessComponent<P = {}> {
@@ -104,7 +104,7 @@ interface StatelessComponent<P = {}> {
 
 由 `SFC` 构造出来的 `ReactElement` 叫做 `SFCElement`，定义如下：
 
-```ts
+```javascript
 interface SFCElement<P> extends ReactElement<P> {
   type: SFC<P>;
 }
@@ -116,7 +116,7 @@ interface SFCElement<P> extends ReactElement<P> {
 
 `Component` 继承自 `ComponentLifecycle`（组件生命周期），同时通过 `Component` 又派生出 `PureComponent` 和 `ClassicComponent`，定义如下：
 
-```ts
+```javascript
 interface ComponentLifecycle<P, S> {
   componentWillMount?(): void;
   componentDidMount?(): void;
@@ -159,13 +159,13 @@ interface ClassicComponent<P = {}, S = {}> extends Component<P, S> {
 
 `ReactInstance` 既可以是 `Component` 的实例，也可以是一个 `Element`（最基础的元素）
 
-```ts
+```javascript
 type ReactInstance = Component<any> | Element
 ```
 
 ## 4. `ReactNode`
 
-```ts
+```javascript
 type ReactText = string | number;
 type ReactChild = ReactElement<any> | ReactText;
 
@@ -177,7 +177,7 @@ type ReactNode = ReactChild | ReactFragment | boolean | null | undefined;
 
 ## 5. `SyntheticEvent`
 
-```ts
+```javascript
 interface SyntheticEvent<T> {
   bubbles: boolean;
   currentTarget: EventTarget & T;
@@ -200,5 +200,7 @@ interface SyntheticEvent<T> {
 参考资料：
 
 > https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/react/v15/index.d.ts
+
 > https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/react/global.d.ts
+
 > https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/react/index.d.ts
