@@ -7,63 +7,63 @@
         LoadingIndicator_LoadingIndicator__LI6x0
         
         undefined
-      "></div><header><h3 class="BlogLayout_title__nZ4wJ"><a class=" " href="/">qingtong Blog</a></h3></header><main><article><header class="BlogPostLayout_header__hNrNi"><h1 class="BlogPostLayout_title__j9S_E"><a class=" " href="/posts/2019-08-01/typescript-redux/">大型项目 typescript + redux 实践</a></h1><small><time dateTime="Wed, 31 Jul 2019 16:00:00 GMT">August 1, 2019</time> <!-- -->•<!-- --> <ul class="ArticleMeta_tags__bwcp_"><li><a class=" " href="/tags/typescript/">typescript</a></li><li><a class=" " href="/tags/redux/">redux</a></li></ul> <!-- -->•<!-- --> <span>☕️<!-- --> <!-- -->5<!-- --> min read</span></small></header><div class="BlogPostLayout_content__3oTIu"><p><img src="https://github.com/wulucxy/blog/tree/master/src/routes/posts/2019-08-01-typescript-redux/image/ts.png" alt="image"/></p><h3 id="前言">前言</h3><p>typescript 是一个有着类型定义的 js 语言的超集。typescript 支持最新的 ESMAScript 特性，并且支持泛型、类型定义等静态语言特征，<strong>是为了大规模应用而生</strong>。我们团队之前在内部一些项目中初步尝试了 <code>React + Redux + TypeScript</code> 组合。本文则尝试梳理基于 <code>typescript</code> 如何更合理的架构 <code>redux</code>。</p><h2 id="一-环境配置">一. 环境配置</h2><p>当前 <code>ts + react</code> 项目基础配置如下：</p><ul><li>编译：@babel/preset-typescript</li><li>开发、打包：parcel</li><li>语法校验：eslint、tsc</li></ul><p>其中引入 <code>babel/preset</code> 来替代 <code>ts-loader</code>，这样既解决了 ts 工程化构建效率问题，同时不影响类型校验，还统一了编译工具。</p><p>接入 <code>babel</code> 以后，需要对 <code>tsconfig</code> 规则稍作修改，此时 ts 的定位仅仅是类型校验，代码编译的工作就完全交给 <code>babel</code> 来处理了。</p><p><em>tsconfig.json</em></p><pre><code>{
-  &quot;compilerOptions&quot;: {
-    // 解析为最新版本的es版本，babel 负责后续的编译
-    &quot;target&quot;: &quot;esnext&quot;,
-    &quot;module&quot;: &quot;esnext&quot;,
-    // ts 的解析规则
-    &quot;lib&quot;: [&quot;esnext&quot;, &quot;dom&quot;],
-    // 绝对地址按照 node_modules 解析
-    &quot;moduleResolution&quot;: &quot;node&quot;,
-    // 开启 jsx
-    &quot;jsx&quot;: &quot;react&quot;,
-    // 不执行构建，交由 babel 执行
-    &quot;noEmit&quot;: true,
-    // 严格模式，包括 strictNullChecks &amp; noImplicitAny.
-    &quot;strict&quot;: true,
-    // 跳过三方包检查
-    &quot;skipLibCheck&quot;: true,
-    // any 类型不警告
-    &quot;noImplicitAny&quot;: true,
-    // 关闭 null 严格检查
-    &quot;strictNullChecks&quot;: false,
-    // 将每个文件作为单独的模块
-    &quot;isolatedModules&quot;: true,
-    // Import non-ES modules as default imports.
-    &quot;esModuleInterop&quot;: true
-  },
-  &quot;include&quot;: [&quot;src&quot;]
-}
-</code></pre><p>接下来还需要配置 <code>eslint</code> 规则：</p><p><em>.eslintrc</em></p><pre><code>{
-  &quot;parser&quot;: &quot;@typescript-eslint/parser&quot;,
-  &quot;parserOptions&quot;: {
-    &quot;project&quot;: &quot;./tsconfig.json&quot;,
-    &quot;ecmaVersion&quot;: 2018
-  },
-  &quot;extends&quot;: [
-    &quot;@wac/standard/react&quot;,
-    &quot;plugin:@typescript-eslint/recommended&quot;,
-    &quot;prettier&quot;,
-    &quot;prettier/@typescript-eslint&quot;
-  ],
-  &quot;plugins&quot;: [&quot;@typescript-eslint&quot;],
-  &quot;rules&quot;: {
-    // 自定义 lint 规则
-    &quot;react/prop-types&quot;: false,
-    &quot;@typescript-eslint/no-explicit-any&quot;: &quot;warn&quot;
-  }
- }
-</code></pre><p>最后一步就是在 <code>package.json</code> 里面添加脚本命令了：</p><p><em>package.json</em></p><pre><code>&quot;scripts&quot;: {
-  &quot;start&quot;: &quot;parcel src/public/index.html --open&quot;,
-  &quot;prebuild&quot;: &quot;npm run build:clean&quot;,
-  &quot;build:clean&quot;: &quot;rimraf ./dist&quot;,
-  &quot;build&quot;: &quot;parcel build src/public/index.html --no-source-maps&quot;,
-  &quot;lint&quot;: &quot;eslint src --fix --format codeframe&quot;,
-  &quot;lint-staged&quot;: &quot;lint-staged&quot;,
-  &quot;ts-compile-check&quot;: &quot;tsc --pretty -p tsconfig.json&quot;
-}
-</code></pre><p>以上，我们就实现了一套完整工程化能力的 <code>typescript</code> 开发环境了。</p><blockquote><p>let’s RUN~~~</p></blockquote><p><img src="https://github.com/wulucxy/blog/tree/master/src/routes/posts/2019-08-01-typescript-redux/image/run.png" alt="run"/></p><h2 id="二-数据和分层">二. 数据和分层</h2><h3 id="1-目录结构">1. 目录结构</h3><p>目录即分层，一个好的目录结构能够让我们在开发中更加得心应手。在开发 redux 应用中，有一种普遍的做法是根据 <code>action</code>, <code>reducer</code> 功能进行分层，一个典型的应用是这样的：</p><pre><code>.
+      "></div><header><h3 class="BlogLayout_title__nZ4wJ"><a class=" " href="/">qingtong Blog</a></h3></header><main><article><header class="BlogPostLayout_header__hNrNi"><h1 class="BlogPostLayout_title__j9S_E"><a class=" " href="/posts/2019-08-01/typescript-redux/">大型项目 typescript + redux 实践</a></h1><small><time dateTime="Wed, 31 Jul 2019 16:00:00 GMT">August 1, 2019</time> <!-- -->•<!-- --> <ul class="ArticleMeta_tags__bwcp_"><li><a class=" " href="/tags/typescript/">typescript</a></li><li><a class=" " href="/tags/redux/">redux</a></li></ul> <!-- -->•<!-- --> <span>☕️<!-- --> <!-- -->5<!-- --> min read</span></small></header><div class="BlogPostLayout_content__3oTIu"><p><img src="https://github.com/wulucxy/blog/raw/master/src/routes/posts/2019-08-01-typescript-redux/image/ts.png" alt="image"/></p><h3 id="前言">前言</h3><p>typescript 是一个有着类型定义的 js 语言的超集。typescript 支持最新的 ESMAScript 特性，并且支持泛型、类型定义等静态语言特征，<strong>是为了大规模应用而生</strong>。我们团队之前在内部一些项目中初步尝试了 <code>React + Redux + TypeScript</code> 组合。本文则尝试梳理基于 <code>typescript</code> 如何更合理的架构 <code>redux</code>。</p><h2 id="一-环境配置">一. 环境配置</h2><p>当前 <code>ts + react</code> 项目基础配置如下：</p><ul><li>编译：@babel/preset-typescript</li><li>开发、打包：parcel</li><li>语法校验：eslint、tsc</li></ul><p>其中引入 <code>babel/preset</code> 来替代 <code>ts-loader</code>，这样既解决了 ts 工程化构建效率问题，同时不影响类型校验，还统一了编译工具。</p><p>接入 <code>babel</code> 以后，需要对 <code>tsconfig</code> 规则稍作修改，此时 ts 的定位仅仅是类型校验，代码编译的工作就完全交给 <code>babel</code> 来处理了。</p><p><em>tsconfig.json</em></p><pre><code class="language-json" data-language="json" data-highlighted-line-numbers=""><span class="token punctuation">{</span>
+  <span class="token property">"compilerOptions"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+    <span class="token comment">// 解析为最新版本的es版本，babel 负责后续的编译</span>
+    <span class="token property">"target"</span><span class="token operator">:</span> <span class="token string">"esnext"</span><span class="token punctuation">,</span>
+    <span class="token property">"module"</span><span class="token operator">:</span> <span class="token string">"esnext"</span><span class="token punctuation">,</span>
+    <span class="token comment">// ts 的解析规则</span>
+    <span class="token property">"lib"</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">"esnext"</span><span class="token punctuation">,</span> <span class="token string">"dom"</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+    <span class="token comment">// 绝对地址按照 node_modules 解析</span>
+    <span class="token property">"moduleResolution"</span><span class="token operator">:</span> <span class="token string">"node"</span><span class="token punctuation">,</span>
+    <span class="token comment">// 开启 jsx</span>
+    <span class="token property">"jsx"</span><span class="token operator">:</span> <span class="token string">"react"</span><span class="token punctuation">,</span>
+    <span class="token comment">// 不执行构建，交由 babel 执行</span>
+    <span class="token property">"noEmit"</span><span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+    <span class="token comment">// 严格模式，包括 strictNullChecks &amp; noImplicitAny.</span>
+    <span class="token property">"strict"</span><span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+    <span class="token comment">// 跳过三方包检查</span>
+    <span class="token property">"skipLibCheck"</span><span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+    <span class="token comment">// any 类型不警告</span>
+    <span class="token property">"noImplicitAny"</span><span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+    <span class="token comment">// 关闭 null 严格检查</span>
+    <span class="token property">"strictNullChecks"</span><span class="token operator">:</span> <span class="token boolean">false</span><span class="token punctuation">,</span>
+    <span class="token comment">// 将每个文件作为单独的模块</span>
+    <span class="token property">"isolatedModules"</span><span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+    <span class="token comment">// Import non-ES modules as default imports.</span>
+    <span class="token property">"esModuleInterop"</span><span class="token operator">:</span> <span class="token boolean">true</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token property">"include"</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">"src"</span><span class="token punctuation">]</span>
+<span class="token punctuation">}</span>
+</code></pre><p>接下来还需要配置 <code>eslint</code> 规则：</p><p><em>.eslintrc</em></p><pre><code class="language-json" data-language="json" data-highlighted-line-numbers=""><span class="token punctuation">{</span>
+  <span class="token property">"parser"</span><span class="token operator">:</span> <span class="token string">"@typescript-eslint/parser"</span><span class="token punctuation">,</span>
+  <span class="token property">"parserOptions"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+    <span class="token property">"project"</span><span class="token operator">:</span> <span class="token string">"./tsconfig.json"</span><span class="token punctuation">,</span>
+    <span class="token property">"ecmaVersion"</span><span class="token operator">:</span> <span class="token number">2018</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token property">"extends"</span><span class="token operator">:</span> <span class="token punctuation">[</span>
+    <span class="token string">"@wac/standard/react"</span><span class="token punctuation">,</span>
+    <span class="token string">"plugin:@typescript-eslint/recommended"</span><span class="token punctuation">,</span>
+    <span class="token string">"prettier"</span><span class="token punctuation">,</span>
+    <span class="token string">"prettier/@typescript-eslint"</span>
+  <span class="token punctuation">]</span><span class="token punctuation">,</span>
+  <span class="token property">"plugins"</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">"@typescript-eslint"</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+  <span class="token property">"rules"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+    <span class="token comment">// 自定义 lint 规则</span>
+    <span class="token property">"react/prop-types"</span><span class="token operator">:</span> <span class="token boolean">false</span><span class="token punctuation">,</span>
+    <span class="token property">"@typescript-eslint/no-explicit-any"</span><span class="token operator">:</span> <span class="token string">"warn"</span>
+  <span class="token punctuation">}</span>
+ <span class="token punctuation">}</span>
+</code></pre><p>最后一步就是在 <code>package.json</code> 里面添加脚本命令了：</p><p><em>package.json</em></p><pre><code class="language-json" data-language="json" data-highlighted-line-numbers=""><span class="token property">"scripts"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+  <span class="token property">"start"</span><span class="token operator">:</span> <span class="token string">"parcel src/public/index.html --open"</span><span class="token punctuation">,</span>
+  <span class="token property">"prebuild"</span><span class="token operator">:</span> <span class="token string">"npm run build:clean"</span><span class="token punctuation">,</span>
+  <span class="token property">"build:clean"</span><span class="token operator">:</span> <span class="token string">"rimraf ./dist"</span><span class="token punctuation">,</span>
+  <span class="token property">"build"</span><span class="token operator">:</span> <span class="token string">"parcel build src/public/index.html --no-source-maps"</span><span class="token punctuation">,</span>
+  <span class="token property">"lint"</span><span class="token operator">:</span> <span class="token string">"eslint src --fix --format codeframe"</span><span class="token punctuation">,</span>
+  <span class="token property">"lint-staged"</span><span class="token operator">:</span> <span class="token string">"lint-staged"</span><span class="token punctuation">,</span>
+  <span class="token property">"ts-compile-check"</span><span class="token operator">:</span> <span class="token string">"tsc --pretty -p tsconfig.json"</span>
+<span class="token punctuation">}</span>
+</code></pre><p>以上，我们就实现了一套完整工程化能力的 <code>typescript</code> 开发环境了。</p><blockquote><p>let’s RUN~~~</p></blockquote><p><img src="https://github.com/wulucxy/blog/raw/master/src/routes/posts/2019-08-01-typescript-redux/image/run.png" alt="run"/></p><h2 id="二-数据和分层">二. 数据和分层</h2><h3 id="1-目录结构">1. 目录结构</h3><p>目录即分层，一个好的目录结构能够让我们在开发中更加得心应手。在开发 redux 应用中，有一种普遍的做法是根据 <code>action</code>, <code>reducer</code> 功能进行分层，一个典型的应用是这样的：</p><pre><code>.
 |-- actions             // 全局 action
 |-- components          // 公共组件
 |   |-- Footer.tsx
@@ -137,7 +137,7 @@
   <span class="token constant">BITCOIN_SET_FILTER</span> <span class="token operator">=</span> <span class="token string">"BITCOIN_SET_FILTER"</span>
 <span class="token punctuation">}</span>
 </code></pre><p>通过枚举类型结合 <code>typescript</code> 的强类型自动推导能力，可以实现开发自动输入补全：
-<img src="https://github.com/wulucxy/blog/tree/master/src/routes/posts/2019-08-01-typescript-redux/image/infer.png" alt="enum"/></p><h3 id="2-actions">2. actions</h3><p>redux 中的 <code>action</code> 分为两类：同步和异步。</p><p><strong>同步 action</strong></p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">import</span> <span class="token punctuation">{</span> BitcoinActionTypes <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">"./types"</span><span class="token punctuation">;</span>
+<img src="https://github.com/wulucxy/blog/raw/master/src/routes/posts/2019-08-01-typescript-redux/image/infer.png" alt="enum"/></p><h3 id="2-actions">2. actions</h3><p>redux 中的 <code>action</code> 分为两类：同步和异步。</p><p><strong>同步 action</strong></p><pre><code class="language-javascript" data-language="javascript" data-highlighted-line-numbers=""><span class="token keyword">import</span> <span class="token punctuation">{</span> BitcoinActionTypes <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">"./types"</span><span class="token punctuation">;</span>
 
 <span class="token keyword">export</span> <span class="token keyword">const</span> <span class="token function-variable function">setFilterType</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">filterType<span class="token operator">:</span> string</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">(</span><span class="token punctuation">{</span>
   type<span class="token operator">:</span> BitcoinActionTypes<span class="token punctuation">.</span><span class="token constant">BITCOIN_SET_FILTER</span><span class="token punctuation">,</span>
@@ -239,4 +239,4 @@
 </code></pre><p>到此，我们就基本上完成了一个 <code>typescript + redux + react</code> 的应用，<em>源码后续会放出</em>。</p><h2 id="总结">总结</h2><blockquote><p>这 ts 有什么用，限制多，运行慢，除了带给我一堆警告，还有什么作用？</p><p>ts 类型声明这么复杂，还引入了这么多新概念，跟框架兼容性又这么差</p><p>我就是辞职，不写前端了，也特么不用巨硬造的假 java</p><p>……</p><p>ts 真香，再也不想用 js 了。</p></blockquote><p>学习 <code>typescript</code> 是一段漫长的旅程，学习 ts 语法并不难，难的是框架对 ts 的支持度。以 React 为例，单单写一个 redux 版本的基础应用就踩了很多坑，甚至为了写 ts 不得不抛弃了<code>immutable.js</code>  — 一个数据不可变函数式工具，更不用提社区数量繁多的其他三方库了。</p><p>ts 不是银弹，ts 无法解决你的代码结构问题，也不能避免语法 Bug，<strong>”彼之蜜糖,吾之毒药“</strong>，当 ts 类型使用不当的时候，强行接入反而会给你造成更大的困扰。</p><p><strong>ts 适合什么场景？</strong></p><p>我个人认为:</p><ol><li><p>中大型项目，需要长期维护的项目，底层库 or 框架</p></li><li><p>上一条的前提是，项目主要依赖的类库对 ts 支持良好，最好有业界的先行案例</p></li></ol><p>所以用一些冷门框架或者小项目的时候我是不建议使用 ts 的，ts 没问题，框架也没问题，框架+ ts 会有很多问题。</p></div><footer class="BlogPostLayout_footer__1TyyS"><h3 class="BlogPostLayout_title__j9S_E"><a class=" " href="/">qingtong Blog</a></h3><div class="
       Bio_Bio__iDVYA
       BlogPostLayout_bio__2WXr0
-    "><img src="https://www.gravatar.com/avatar/aa99b351245441b8ca95d54a52d2998c.jpg?s=56&amp;d=identicon" alt="Me"/><p>来自接地气的一线实践开发经验，用心做原创<br/>分享关于 React、数据可视化、效率工具等，打造专业前端知识库</p></div><section class="BlogPostLayout_links__1fL9M"><a class=" " href="/posts/2020-02-19/table-search-design/">← <!-- -->查询 + Table 组件设计</a><a class="BlogPostLayout_next__1lwtu " href="/posts/2019-04-26/webkit-structure/">webkit 浏览器架构<!-- --> →</a></section></footer></article></main></div></div><script>!function(u){function e(e){for(var t,r,n=e[0],o=e[1],c=e[2],a=0,f=[];a<n.length;a++)r=n[a],l[r]&&f.push(l[r][0]),l[r]=0;for(t in o)Object.prototype.hasOwnProperty.call(o,t)&&(u[t]=o[t]);for(p&&p(e);f.length;)f.shift()();return d.push.apply(d,c||[]),i()}function i(){for(var e,t=0;t<d.length;t++){for(var r=d[t],n=!0,o=1;o<r.length;o++){var c=r[o];0!==l[c]&&(n=!1)}n&&(d.splice(t--,1),e=s(s.s=r[0]))}return e}var r={},f={19:0},l={19:0},d=[];function s(e){if(r[e])return r[e].exports;var t=r[e]={i:e,l:!1,exports:{}};return u[e].call(t.exports,t,t.exports,s),t.l=!0,t.exports}s.e=function(d){var e=[];f[d]?e.push(f[d]):0!==f[d]&&{1:1,10:1,17:1}[d]&&e.push(f[d]=new Promise(function(e,n){for(var t="static/css/"+({}[d]||d)+"."+{1:"49edd35f",2:"31d6cfe0",3:"31d6cfe0",4:"31d6cfe0",5:"31d6cfe0",6:"31d6cfe0",7:"31d6cfe0",8:"31d6cfe0",9:"31d6cfe0",10:"60612b0d",11:"31d6cfe0",12:"31d6cfe0",13:"31d6cfe0",14:"31d6cfe0",15:"31d6cfe0",16:"31d6cfe0",17:"3f23591b"}[d]+".chunk.css",o=s.p+t,r=document.getElementsByTagName("link"),c=0;c<r.length;c++){var a=(u=r[c]).getAttribute("data-href")||u.getAttribute("href");if("stylesheet"===u.rel&&(a===t||a===o))return e()}var f=document.getElementsByTagName("style");for(c=0;c<f.length;c++){var u;if((a=(u=f[c]).getAttribute("data-href"))===t||a===o)return e()}var i=document.createElement("link");i.rel="stylesheet",i.type="text/css",i.onload=e,i.onerror=function(e){var t=e&&e.target&&e.target.src||o,r=new Error("Loading CSS chunk "+d+" failed.\n("+t+")");r.request=t,n(r)},i.href=o,document.getElementsByTagName("head")[0].appendChild(i)}).then(function(){f[d]=0}));var r=l[d];if(0!==r)if(r)e.push(r[2]);else{var t=new Promise(function(e,t){r=l[d]=[e,t]});e.push(r[2]=t);var n,o=document.getElementsByTagName("head")[0],c=document.createElement("script");c.charset="utf-8",c.timeout=120,s.nc&&c.setAttribute("nonce",s.nc),c.src=s.p+"static/js/"+({}[d]||d)+"."+{1:"59852cbf",2:"759e1229",3:"734ff8ec",4:"f4c19758",5:"dd9b6e1d",6:"53817a86",7:"12fcb63d",8:"daa1b361",9:"78334f37",10:"c63f6356",11:"a19ebecc",12:"7e3d0928",13:"863784b6",14:"11052516",15:"e1264659",16:"ca7c92e8",17:"fe2dd3b4"}[d]+".chunk.js",n=function(e){c.onerror=c.onload=null,clearTimeout(a);var t=l[d];if(0!==t){if(t){var r=e&&("load"===e.type?"missing":e.type),n=e&&e.target&&e.target.src,o=new Error("Loading chunk "+d+" failed.\n("+r+": "+n+")");o.type=r,o.request=n,t[1](o)}l[d]=void 0}};var a=setTimeout(function(){n({type:"timeout",target:c})},12e4);c.onerror=c.onload=n,o.appendChild(c)}return Promise.all(e)},s.m=u,s.c=r,s.d=function(e,t,r){s.o(e,t)||Object.defineProperty(e,t,{enumerable:!0,get:r})},s.r=function(e){"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(e,"__esModule",{value:!0})},s.t=function(t,e){if(1&e&&(t=s(t)),8&e)return t;if(4&e&&"object"==typeof t&&t&&t.__esModule)return t;var r=Object.create(null);if(s.r(r),Object.defineProperty(r,"default",{enumerable:!0,value:t}),2&e&&"string"!=typeof t)for(var n in t)s.d(r,n,function(e){return t[e]}.bind(null,n));return r},s.n=function(e){var t=e&&e.__esModule?function(){return e.default}:function(){return e};return s.d(t,"a",t),t},s.o=function(e,t){return Object.prototype.hasOwnProperty.call(e,t)},s.p="/blog/",s.oe=function(e){throw console.error(e),e};var t=window.webpackJsonp=window.webpackJsonp||[],n=t.push.bind(t);t.push=e,t=t.slice();for(var o=0;o<t.length;o++)e(t[o]);var p=n;i()}([])</script><script src="/blog/static/js/18.c7bca5f2.chunk.js"></script><script src="/blog/static/js/main.ff93a746.chunk.js"></script></body></html>
+    "><img src="https://www.gravatar.com/avatar/aa99b351245441b8ca95d54a52d2998c.jpg?s=56&amp;d=identicon" alt="Me"/><p>来自接地气的一线实践开发经验，用心做原创<br/>分享关于 React、数据可视化、效率工具等，打造专业前端知识库</p></div><section class="BlogPostLayout_links__1fL9M"><a class=" " href="/posts/2020-02-19/table-search-design/">← <!-- -->查询 + Table 组件设计</a><a class="BlogPostLayout_next__1lwtu " href="/posts/2019-04-26/webkit-structure/">webkit 浏览器架构<!-- --> →</a></section></footer></article></main></div></div><script>!function(u){function e(e){for(var t,r,n=e[0],o=e[1],c=e[2],a=0,f=[];a<n.length;a++)r=n[a],l[r]&&f.push(l[r][0]),l[r]=0;for(t in o)Object.prototype.hasOwnProperty.call(o,t)&&(u[t]=o[t]);for(p&&p(e);f.length;)f.shift()();return d.push.apply(d,c||[]),i()}function i(){for(var e,t=0;t<d.length;t++){for(var r=d[t],n=!0,o=1;o<r.length;o++){var c=r[o];0!==l[c]&&(n=!1)}n&&(d.splice(t--,1),e=s(s.s=r[0]))}return e}var r={},f={19:0},l={19:0},d=[];function s(e){if(r[e])return r[e].exports;var t=r[e]={i:e,l:!1,exports:{}};return u[e].call(t.exports,t,t.exports,s),t.l=!0,t.exports}s.e=function(d){var e=[];f[d]?e.push(f[d]):0!==f[d]&&{1:1,10:1,17:1}[d]&&e.push(f[d]=new Promise(function(e,n){for(var t="static/css/"+({}[d]||d)+"."+{1:"49edd35f",2:"31d6cfe0",3:"31d6cfe0",4:"31d6cfe0",5:"31d6cfe0",6:"31d6cfe0",7:"31d6cfe0",8:"31d6cfe0",9:"31d6cfe0",10:"60612b0d",11:"31d6cfe0",12:"31d6cfe0",13:"31d6cfe0",14:"31d6cfe0",15:"31d6cfe0",16:"31d6cfe0",17:"3f23591b"}[d]+".chunk.css",o=s.p+t,r=document.getElementsByTagName("link"),c=0;c<r.length;c++){var a=(u=r[c]).getAttribute("data-href")||u.getAttribute("href");if("stylesheet"===u.rel&&(a===t||a===o))return e()}var f=document.getElementsByTagName("style");for(c=0;c<f.length;c++){var u;if((a=(u=f[c]).getAttribute("data-href"))===t||a===o)return e()}var i=document.createElement("link");i.rel="stylesheet",i.type="text/css",i.onload=e,i.onerror=function(e){var t=e&&e.target&&e.target.src||o,r=new Error("Loading CSS chunk "+d+" failed.\n("+t+")");r.request=t,n(r)},i.href=o,document.getElementsByTagName("head")[0].appendChild(i)}).then(function(){f[d]=0}));var r=l[d];if(0!==r)if(r)e.push(r[2]);else{var t=new Promise(function(e,t){r=l[d]=[e,t]});e.push(r[2]=t);var n,o=document.getElementsByTagName("head")[0],c=document.createElement("script");c.charset="utf-8",c.timeout=120,s.nc&&c.setAttribute("nonce",s.nc),c.src=s.p+"static/js/"+({}[d]||d)+"."+{1:"59852cbf",2:"759e1229",3:"734ff8ec",4:"f4c19758",5:"dd9b6e1d",6:"53817a86",7:"12fcb63d",8:"3e68a479",9:"78334f37",10:"c63f6356",11:"6d2761c2",12:"1b87128d",13:"3909f04c",14:"2e0f157e",15:"6b07a969",16:"57848b14",17:"fe2dd3b4"}[d]+".chunk.js",n=function(e){c.onerror=c.onload=null,clearTimeout(a);var t=l[d];if(0!==t){if(t){var r=e&&("load"===e.type?"missing":e.type),n=e&&e.target&&e.target.src,o=new Error("Loading chunk "+d+" failed.\n("+r+": "+n+")");o.type=r,o.request=n,t[1](o)}l[d]=void 0}};var a=setTimeout(function(){n({type:"timeout",target:c})},12e4);c.onerror=c.onload=n,o.appendChild(c)}return Promise.all(e)},s.m=u,s.c=r,s.d=function(e,t,r){s.o(e,t)||Object.defineProperty(e,t,{enumerable:!0,get:r})},s.r=function(e){"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(e,"__esModule",{value:!0})},s.t=function(t,e){if(1&e&&(t=s(t)),8&e)return t;if(4&e&&"object"==typeof t&&t&&t.__esModule)return t;var r=Object.create(null);if(s.r(r),Object.defineProperty(r,"default",{enumerable:!0,value:t}),2&e&&"string"!=typeof t)for(var n in t)s.d(r,n,function(e){return t[e]}.bind(null,n));return r},s.n=function(e){var t=e&&e.__esModule?function(){return e.default}:function(){return e};return s.d(t,"a",t),t},s.o=function(e,t){return Object.prototype.hasOwnProperty.call(e,t)},s.p="/blog/",s.oe=function(e){throw console.error(e),e};var t=window.webpackJsonp=window.webpackJsonp||[],n=t.push.bind(t);t.push=e,t=t.slice();for(var o=0;o<t.length;o++)e(t[o]);var p=n;i()}([])</script><script src="/blog/static/js/18.c7bca5f2.chunk.js"></script><script src="/blog/static/js/main.ff93a746.chunk.js"></script></body></html>
