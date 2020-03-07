@@ -2,16 +2,16 @@
 <rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
     <channel>
         <title>Papaya Blog</title>
-        <link>/client/papaya-blog/</link>
+        <link>/blog</link>
         <description>来自大资产中台前端团队的实践分享，用心做原创</description>
-        <lastBuildDate>Sat, 07 Mar 2020 11:40:31 GMT</lastBuildDate>
+        <lastBuildDate>Sat, 07 Mar 2020 11:42:34 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <item>
             <title><![CDATA[迁移到新版 papaya blog]]></title>
-            <link>/client/papaya-blog/posts/2019-03-12/welcome/</link>
-            <guid>/client/papaya-blog/posts/2019-03-12/welcome/</guid>
-            <content:encoded><![CDATA[<div><div><div class="document_logo__2BOtk"><img src="/client/papaya-blog/static/media/react-logo.5d5d9eef.svg" class="document_logo-react__1jijx" alt="logo"/></div><p><strong>1. 新建文章：</strong> 在 <code>src/routes/posts</code>下按照 <code>yyyy-mm-dd-your-page-title</code>创建文件夹，将 markdown 添加到 <code>document.mdx</code> 中，再新建 <code>post.js</code> 添加文章信息：</p><pre><code class="language-jsx" data-language="jsx" data-highlighted-line-numbers="">title<span class="token operator">:</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">文章标题</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">,</span>
+            <link>/blog/posts/2019-03-12/welcome/</link>
+            <guid>/blog/posts/2019-03-12/welcome/</guid>
+            <content:encoded><![CDATA[<div><div><div class="document_logo__2BOtk"><img src="/blog/static/media/react-logo.5d5d9eef.svg" class="document_logo-react__1jijx" alt="logo"/></div><p><strong>1. 新建文章：</strong> 在 <code>src/routes/posts</code>下按照 <code>yyyy-mm-dd-your-page-title</code>创建文件夹，将 markdown 添加到 <code>document.mdx</code> 中，再新建 <code>post.js</code> 添加文章信息：</p><pre><code class="language-jsx" data-language="jsx" data-highlighted-line-numbers="">title<span class="token operator">:</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">文章标题</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">,</span>
 tags<span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">'文章标签1'</span><span class="token punctuation">,</span> <span class="token string">'文章标签2'</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
 spoiler<span class="token operator">:</span> <span class="token string">"文章简略说明"</span><span class="token punctuation">,</span>
 <span class="token function-variable function">getContent</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token keyword">import</span><span class="token punctuation">(</span><span class="token string">'./document.mdx'</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
