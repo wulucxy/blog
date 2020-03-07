@@ -1,0 +1,2 @@
+(window.webpackJsonp=window.webpackJsonp||[]).push([[3],{77:function(n,t,e){"use strict";e.r(t),t.default={title:"\u8fc1\u79fb\u5230\u65b0\u7248 papaya blog",spoiler:"\u5982\u4f55\u65b0\u5efa\u6587\u7ae0\uff0c\u5e76\u53d1\u5e03\u5230\u535a\u5ba2\u4e0a",getContent:function(){return e.e(5).then(e.bind(null,72))}}}}]);
+//# sourceMappingURL=3.2e8c847b.chunk.js.map
