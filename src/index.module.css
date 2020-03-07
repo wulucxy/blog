@@ -54,6 +54,12 @@
   margin-bottom: 1rem;
 }
 
+:global blockquote{
+  padding: 0 1em;
+  color: #6a737d;
+  border-left: .25em solid #dfe2e5;
+}
+
 article img{
   max-width: 100%;
   height: auto;

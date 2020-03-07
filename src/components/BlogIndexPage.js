@@ -39,7 +39,7 @@ function BlogIndexPage({ blogRoot, pageCount, pageNumber, postRoutes }) {
           <Link href={`${basename}/tags`}>
             Tags
           </Link> &bull;{' '}
-          <a href='http://git.caimi-inc.com/client/papaya-blog'>
+          <a href='https://github.com/wulucxy/blog'>
             Source
           </a>
         </div>
