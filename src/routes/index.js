@@ -2,6 +2,7 @@ import { compose, lazy, map, mount, redirect, route, withContext, withView } fro
 import React from 'react'
 import { join } from 'path'
 import { chunk, fromPairs } from 'lodash'
+import ReactGA from '../components/reactGA'
 import BlogIndexPage from '../components/BlogIndexPage'
 import BlogLayout from '../components/BlogLayout'
 import BlogPostLayout from '../components/BlogPostLayout'
@@ -55,7 +56,8 @@ const routes = compose(
     // Check if the current page is an index page by comparing the remaining
     // portion of the URL's pathname with the index page paths.
     let isViewingIndex = req.path === '/' || /^\/page\/\d+\/$/.test(req.path)
-
+    // 请求
+    ReactGA.pageview(req.path)
     // Render the application-wide layout
     return (
       <BlogLayout
