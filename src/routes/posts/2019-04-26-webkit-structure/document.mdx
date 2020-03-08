@@ -2,13 +2,13 @@
 
 * thread 是 process 的一部分
 
-![process and threads](https://developers.google.com/web/updates/images/inside-browser/part1/process-thread.png)
+![process and threads](https://github.com/wulucxy/blog/raw/master/src/routes/posts/2019-04-26-webkit-structure/image/process-thread.png)
 
 * 可以开启多个 process，process 之间通过  **IPC（Inter Process Communication）**  交互。
 
 ## 浏览器架构
 
-![Chrome processes](https://developers.google.com/web/updates/images/inside-browser/part1/browserui.png)
+![Chrome processes](https://github.com/wulucxy/blog/raw/master/src/routes/posts/2019-04-26-webkit-structure/image/browserui.png)
 
 | process 类型 | 内容                                       |
 | ---------- | ---------------------------------------- |
@@ -24,7 +24,7 @@
 
 
 ## 页面跳转
-![thread](https://developers.google.com/web/updates/images/inside-browser/part2/browserprocesses.png)
+![thread](https://github.com/wulucxy/blog/raw/master/src/routes/posts/2019-04-26-webkit-structure/image/browserprocesses.png)
 
 从 browser process 开始，包含 UI thread / Network thread / storage thread
 
@@ -44,7 +44,7 @@
   
     
 
-![HTTP response](https://developers.google.com/web/updates/images/inside-browser/part2/response.png)
+![HTTP response](https://github.com/wulucxy/blog/raw/master/src/routes/posts/2019-04-26-webkit-structure/image/response.png)
 
 * 如果请求是 HTML ，则渲染页面
   
@@ -73,7 +73,7 @@
 
 ## renderer process 处理页面渲染
 
-![Renderer process](https://developers.google.com/web/updates/images/inside-browser/part3/renderer.png)
+![Renderer process](https://github.com/wulucxy/blog/raw/master/src/routes/posts/2019-04-26-webkit-structure/image/renderer.png)
 
 * Main thread 会处理大部分内容，包括 parsing / style 计算 / layout 构建 / paint 操作/ js 执行
 * composition 则在单独的 compositor 执行
@@ -88,20 +88,20 @@
 
 ### style 计算
 
-![computed style](https://developers.google.com/web/updates/images/inside-browser/part3/computedstyle.png)
+![computed style](https://github.com/wulucxy/blog/raw/master/src/routes/posts/2019-04-26-webkit-structure/image/computedstyle.png)
 
 ### Layout
 
 浏览器会构建一个与 DOM 树类似的树，展示 x, y, width, height 信息。伪类元素也会在这个阶段应用。
 
-![layout](https://developers.google.com/web/updates/images/inside-browser/part3/layout.png)
+![layout](https://github.com/wulucxy/blog/raw/master/src/routes/posts/2019-04-26-webkit-structure/image/layout.png)
 
 
 
 ### paint
 在这个阶段还需计算组件的 order。Layout 树会被遍历产生一个 Paint Record.
 
-![paint records](https://developers.google.com/web/updates/images/inside-browser/part3/paint.png)
+![paint records](https://github.com/wulucxy/blog/raw/master/src/routes/posts/2019-04-26-webkit-structure/image/paint.png)
 
 
 * 以 pipeline 的方式进行更新
@@ -111,16 +111,15 @@
 
 * js 也在 main thread 中进行，会阻碍渲染
 
-![jage jank by JavaScript](https://developers.google.com/web/updates/images/inside-browser/part3/pagejank2.png)
+![jage jank by JavaScript](https://github.com/wulucxy/blog/raw/master/src/routes/posts/2019-04-26-webkit-structure/image/pagejank2.png)
 
 可以将 js 操作颗粒化，可以使用 requestAnimationFrame() / web worker
 
-![request animation frame](https://developers.google.com/web/updates/images/inside-browser/part3/raf.png)
+![request animation frame](https://github.com/wulucxy/blog/raw/master/src/routes/posts/2019-04-26-webkit-structure/image/raf.png)
 
 ### compositing 合成
 
-![Apr-25-2019_23-01-04](http://git.caimi-inc.com/client/papaya-blog/uploads/d29d4e6a16ea2e29955a8fdf37293659/Apr-25-2019_23-01-04.gif)
-
+![Apr-25-2019_23-01-04](https://github.com/wulucxy/blog/raw/master/src/routes/posts/2019-04-26-webkit-structure/image/compositing.gif)
 
 
 compositing 则是将 page 分成不同的 layer, 对每个 layer 都进行 raster(光栅化)，然后在  *compositor thread* 上合成(composition).
