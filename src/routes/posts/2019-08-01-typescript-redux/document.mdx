@@ -1,5 +1,7 @@
 ![image](https://github.com/wulucxy/blog/raw/master/src/routes/posts/2019-08-01-typescript-redux/image/ts.png)
 
+**TLDR: 文章比较长，可以跳过直接[查看 Demo](https://wulucxy.github.io/redux-typescript-guide/)**
+
 ### 前言
 
 typescript 是一个有着类型定义的 js 语言的超集。typescript 支持最新的 ESMAScript 特性，并且支持泛型、类型定义等静态语言特征，**是为了大规模应用而生**。我们团队之前在内部一些项目中初步尝试了 `React + Redux + TypeScript` 组合。本文则尝试梳理基于 `typescript` 如何更合理的架构 `redux`。
@@ -61,7 +63,7 @@ typescript 是一个有着类型定义的 js 语言的超集。typescript 支持
     "ecmaVersion": 2018
   },
   "extends": [
-    "@wac/standard/react",
+    "@npm/standard/react",
     "plugin:@typescript-eslint/recommended",
     "prettier",
     "prettier/@typescript-eslint"
@@ -207,7 +209,7 @@ export default function(initialState = {}) {
 最简单的声明文件是这样的：
 
 ```
-declare module '@wac/r3'
+declare module '@npm/r3'
 ```
 
 但是如果你的项目中类型声明非常重要的话，建议到 [DefinitelyTyped](https://github.com/DefinitelyTyped/DefinitelyTyped) 查看更多优质类型定义文件，并贡献自己的力量。
