@@ -1,0 +1,323 @@
+# 详细设计
+
+## 目录结构
+
+```
+project
+|-- package.json
+|-- process.json // 部署配置
+|-- config // 应用配置
+|     |-- app.yaml
+|     |-- app.test.yaml
+|     |-- app.staging.yaml
+|     |-- app.production.yaml
+|-- src
+|     |-- app.js // 入口文件
+|     |-- router.js // 路由
+|     |-- controller
+|     |     |-- home.js
+|     |-- service
+|     |     |-- user.js
+|     |-- middleware
+|     |     |-- error-handler.js
+|     |-- lib
+|     |     |-- config.js
+|     |     |-- cronus.js // 核心依赖
+```
+
+
+## 核心
+
+框架依赖核心库`@wac/cronus`，接口包含：
+
+```js
+class Cronus {
+  // 启动入口
+  async start() {}
+  
+  // 进程退出
+  exit() {}
+  
+  // 加载路由
+  initRouter(router) {}
+  
+  // 日志实例
+  getLogger() {}
+  
+  // MySQL 客户端
+  getMySQLClient(database) {}
+  
+  // Redis 客户端
+  getRedisClient(appId) {}
+  
+  // RPC 服务
+  getRPCService(serviceName) {}
+  
+  // 添加中间件
+  addMiddleware(middleware) {}
+}
+```
+配置
+
+```js
+// 核心依赖
+const Cronus = require('@wac/cronus')
+
+const config = {
+  // 服务名
+  serviceName: 'xxx-service',
+  // 端口
+  port: 8080,
+  // debug 模式
+  debug: false,
+  // 心跳检测
+  check: {
+    http: 'http://127.0.0.1:8080/health',
+    interval: '5s',
+    timeout: '10s'
+  },
+  // MySQL 配置
+  mysql: [
+    {
+      database: 'client_waes',
+      JDBC_PROPS_URL: '',
+      DRUID_DECRYPT_KEY: ''
+    },
+    // ...
+  ],
+  // Redis 配置
+  redis: [
+    {
+      schema: 'client:xxx-service:',
+      appKey: '',
+      appId: ''
+    },
+    // ...
+  ]
+}
+
+const cronus = new Cronus(config)
+// 加载路由
+cronus.initRouter(require('./router'))
+// 启动
+await cronus.start()
+
+// 进程退出
+cronus.exit()
+```
+
+日志调用
+
+通过接口获取日志实例，支持4种日志级别，参考`@wac/koa-logger`，日志输出到`/data/program/logs/${group}/${name}/app_log/monitor`目录下，通过运维自动采集
+
+```js
+const logger = cronus.getLogger()
+logger.debug()
+logger.info()
+logger.warn()
+logger.error()
+```
+
+MySQL 调用
+
+参考`@wac/mysql-client`
+
+```js
+const mysqlClient = cronus.getMySQLClient('client_waes')
+const result = await mysqlClient.query()
+```
+
+Redis 调用
+
+参考`@wac/redis-client`
+
+```js
+const redisClient = cronus.getRedisClient()
+const result = await redisClient.get()
+```
+
+RPC 调用
+
+初次获取 RPC 服务向 Consul Server 请求其节点信息，并在本地维护一份该服务的信息，监听其变化，当发生变化时，更新该服务节点信息
+
+```js
+const Greeter = cronus.getRPCService('greeter-service')
+const rpcData = await Greeter.sayHello()
+```
+
+## 框架运行
+
+### 启动流程
+
+1. 创建 Cronus 实例
+2. 加载 Service、Controller
+3. 加载路由
+4. Cronus 初始化
+  * 初始化日志实例
+  * 初始化 Consul Client，进行服务注册
+  * 初始化 MySQL、Redis 客户端
+  * 启动 http server，并监听相应端口
+5. 启动完成
+
+### 异常监听
+
+由框架监听全局未捕获的异常，并输出日志
+
+### 退出流程
+
+进程退出前需向 Consul Server 注销服务，之后关闭 http server，若超过最大退出等待时间，则强制退出并发出告警
+
+## 中间件
+
+框架默认提供一部分基础中间件，置于`src/middleware`目录下
+
+### 日志中间件
+
+该中间件将核心库提供的日志实例绑定到上下文中，进行业务开发时可直接使用`ctx.log`或者`ctx.logger`对象，二者是一致的
+
+### 错误中间件
+
+该中间件默认会对应用中未捕获的错误进行兜底拦截
+
+### fetch 中间件
+
+该中间件提供`@wac/hakone`的能力，并绑定到上下文`ctx.fetch`
+
+## 路由
+
+框架约定`src/router.js`文件用于路由规则配置
+
+定义示例：
+
+```js
+module.exports = app => {
+  router.get('/user/:id', app.controller.user.info)
+}
+```
+
+## 控制器
+
+所有的 Controller 文件都置于`src/controller`目录下，访问时可通过文件名选择对应 Controller
+
+定义 Controller 基类，每个请求访问到 server 时实例化一个全新对象，下面挂载以下属性：
+
+* `this.ctx`：请求上下文
+* `this.service`: 应用定义的 service
+
+其他 Controller 均继承自该基类，示例：
+
+```js
+class UserController extends Controller {
+  async list() {
+    const { ctx, service } = this
+    const ret = await service.user.query()
+    ctx.body = ret
+  }
+}
+```
+
+## 服务
+
+所有的 Service 文件都置于`src/service`目录下，访问时可通过文件名选择对应 Service
+
+Controller 中访问：
+
+```
+src/service/user.js => this.service.user
+src/service/biz.js => this.service.biz
+```
+
+定义 Service 基类，挂载以下属性：
+
+* `this.ctx`：请求上下文
+* `this.service`: 应用定义的 service
+
+其他 Service 均继承自该基类，示例：
+
+```js
+class UserService extends Service {
+  async list() {
+    const ret = await mysqlClient.query('select * from user')
+    return ret
+  }
+}
+```
+
+## 容器化已有项目兼容
+
+在微服务框架启动后，`核心库初始化前`，按容器化原有的方式加载`bean.${env}.yaml`，框架中提供一个配置解析器，该解析器会完成以下几件事：
+
+### 基础配置
+
+提取初始化核心库中所必需的部分，如 server port，baseURI，MySQL，Redis配置等，用于初始化核心库
+
+### 插件
+
+插件不再保留生命周期，目前绝大多数插件未使用该能力，仅部分基础插件有使用，这部分将改在框架初始化中完成
+
+### 路由
+
+按容器化中对路由的解析顺序，将配置中`router`部分重新组装成标准的 koa 路由文件，通过`cronus.initRouter(require('./router'))`加载
+
+### 其他配置
+
+对于其他配置会加载并挂载到上下文`ctx.bean.config`，保持与容器化一致
+
+### 上下文
+
+容器化中每个请求的上下文，都提供了 bean 相关属性的访问
+
+兼容后保留：
+
+* ctx.bean.id，实例唯一 ID，原 instanceCode，现 serviceId
+* ctx.bean.name，应用名
+* ctx.bean.env，当前环境
+* ctx.bean.baseDir，应用根路径
+* ctx.bean.config，配置信息
+
+### 数据共享 API 接口
+
+```
+// 查询应用列表
+ctx.sharedData.queryAppList()
+
+// 获取配置
+ctx.sharedData.get(
+  [ 'code1', 'code2' ]
+)
+
+// 获取配置列表
+ctx.sharedData.getConfigList('appCode')
+
+// 新建配置
+ctx.sharedData.create({
+  name,
+  code,
+  appId,
+  value,
+  groupId,
+  desc,
+})
+
+// 接口转发
+router.all(
+  '*',
+  sharedData.proxy({
+    map: path => 'http://backendUrl' + path
+  })
+)
+```
+
+### 迁移方案
+
+- 将 wax 应用 node 目录迁移到微服务框架./src/node下
+- 重新整理依赖到package.json
+- 修改package.json中 name 为对应 wax 应用
+- 申请 artifactId
+
+### 注意事项
+
+- baseDir层级变化，需对应调整
+- body parser 由于各项目使用上的差异，该中间件没有作为内置，可在微服务框架中按需开启
+- ctx.fetch.hakone新的上下文，并无单独挂载 hakone 对象，需对应调整
+- 配置以微服务框架为准，框架配置会覆盖 wax 应用配置，需注意
