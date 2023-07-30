@@ -1,0 +1,154 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="shortcut icon" href="/blog/favicon.ico"><meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name="theme-color" content="#000000"><link rel="manifest" href="/blog/manifest.json"><link rel="canonical" href="/blog/posts/2023-07-28/principle-of-lowcode/" />
+
+    <title data-react-helmet="true">从实现原理看低代码</title>
+    
+    
+  <link rel="stylesheet" href="/blog/static/css/1.256ccf89.chunk.css" /><link href="/blog/static/css/main.e5a51191.chunk.css" rel="stylesheet"></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id="root"><div class="BlogLayout_container__8wf6g"><div class="
+        LoadingIndicator_LoadingIndicator__nj5Ug
+        
+        undefined
+      "></div><header><h3 class="BlogLayout_title__1KtpA"><a class=" " href="/">qingtong Blog</a></h3></header><main><article><header class="BlogPostLayout_header__30yid"><h1 class="BlogPostLayout_title__1TCtk"><a class=" " href="/posts/2023-07-28/principle-of-lowcode/">从实现原理看低代码</a></h1><small><time dateTime="Thu, 27 Jul 2023 16:00:00 GMT">July 28, 2023</time> <!-- -->•<!-- --> <ul class="ArticleMeta_tags__3omzx"><li><a class=" " href="/tags/lowcode/">lowcode</a></li></ul> <!-- -->•<!-- --> <span>☕️☕️☕️☕️<!-- --> <!-- -->18<!-- --> min read</span></small></header><div class="BlogPostLayout_content__1Z4m-"><h1 id="从实现原理看低代码">从实现原理看低代码</h1><p>基于 TARS 低代码平台，你可以使用自然语言生成一个页面，并试着通过可视化搭建去完善它，必要的情况下，还能搭建一个具备完成交互功能的页面。</p><p>低代码到底有没有价值，你自己体验了才算。</p><h2 id="背景">背景</h2><p>TARS 低代码平台从 3 月份启动之后，即将迎来版本首发。最近也陆续上线多个应用：</p><ul><li>埋点报表</li><li>用户信息查询</li><li>资源池使用率</li><li>…</li></ul><p>这期间也调研了不少业内同类产品，各家产品实现细节上各有千秋，底层原理上也各有特色。</p><p>本文将基于 TARS 的实现原理，并结合同类竞品的实现范式，对低代码的本质进行简要拆解。</p><h2 id="低代码定义">低代码定义</h2><p>在 AIGC 🔥 出圈之前，低代码是科技领域的流量担当，大大小小的科技公司都在推出自己的低代码平台，同时围绕低代码充满了各种各样的争议。</p><p><img src="https://raw.githubusercontent.com/wulucxy/blog/master/src/assets/imgs/posts/principle-of-lowcode/products.png" alt="image"/></p><p>抛开现象看本质，头部分析机构 <code>Gartner</code> 对「低代码」给出的定义是：</p><pre><code>An LCAP is characterized by its use of model-driven or visual development paradigms
+supported by expression languages and possibly scripting…
+
+低代码应用开发平台的特征是，「模型驱动」，「可视化开发」，并支持「表达式」和「脚本开发」的能力。
+</code></pre><p>低代码平台的出现和流行，其实是有其历史背景的。当 web 应用的前端技术和模型设计的基础越来越成熟，低代码平台就可以站在前人的肩膀上，将应用研发带入下一个阶段。</p><p>我认为低代码平台的核心能力是「可视化开发」，「可视化开发」并非单纯的拖拉拽做个页面，而是有着完整的「可视化代码开发」能力。</p><p>围绕「可视化开发」笔者将低代码平台核心能力可以进一步拆分为三块领域：</p><ol><li>可视化搭建</li><li>数据模型</li><li>逻辑编排</li></ol><h3 id="1-可视化搭建">1. 可视化搭建</h3><p>可视化搭建是开发者对低代码最直观的认知部分。使用者可基于可视化的画布，对画布上的节点进行可视化的配置和操作。</p><p>以 lowcode-engine 为例：
+<img src="https://raw.githubusercontent.com/wulucxy/blog/master/src/assets/imgs/posts/principle-of-lowcode/lowcode-engine-1.png" alt="image"/></p><p>可以发现，通常低代码可视化搭建至少包含以下元素：</p><ul><li>编辑器画布</li><li>组件库</li><li>组件配置器</li></ul><p>可视化搭建背后是一套描述页面结构和相关上下文的协议，一般称为 schema 或 DSL（本文统一为 schema）。</p><p>设计器内部会包含一套解析引擎，将 schema 解析为组件树，交给框架（react、vue、native）来渲染生成页面。</p><h4 id="schema">schema</h4><p>以 React 为例：</p><p>我们可以通过 JSON 来描述页面的结构：</p><pre><code class="language-json" data-language="json" data-highlighted-line-numbers=""><span class="token punctuation">{</span>
+    <span class="token property">"componentName"</span><span class="token operator">:</span> <span class="token string">"Root"</span><span class="token punctuation">,</span>
+    <span class="token property">"children"</span><span class="token operator">:</span> <span class="token punctuation">[</span>
+        <span class="token punctuation">{</span>
+            <span class="token property">"componentName"</span><span class="token operator">:</span> <span class="token string">"Button"</span><span class="token punctuation">,</span>
+            <span class="token property">"props"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+                <span class="token property">"size"</span><span class="token operator">:</span> <span class="token string">"default"</span>
+                <span class="token property">"text"</span><span class="token operator">:</span> <span class="token string">"这是文本"</span>
+            <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        <span class="token punctuation">{</span>
+            <span class="token property">"componentName"</span><span class="token operator">:</span> <span class="token string">"Input"</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">]</span>
+<span class="token punctuation">}</span>
+</code></pre><p>其中 <code>componentName</code> 代表组件的唯一名称，<code>props</code> 代表组件属性，<code>children</code> 代表组件子节点。</p><p>通过平台内置渲染引擎生成结果：</p><pre><code class="language-jsx" data-language="jsx" data-highlighted-line-numbers=""><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span><span class="token class-name">Root</span></span><span class="token punctuation">></span></span><span class="token plain-text">
+  </span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span><span class="token class-name">Button</span></span> <span class="token attr-name">size</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>default<span class="token punctuation">"</span></span> <span class="token attr-name">text</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>这是文本<span class="token punctuation">"</span></span> <span class="token punctuation">/></span></span><span class="token plain-text">
+  </span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span><span class="token class-name">Input</span></span> <span class="token punctuation">/></span></span><span class="token plain-text">
+</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span><span class="token class-name">Root</span></span><span class="token punctuation">></span></span><span class="token plain-text">
+</span></code></pre><p>值得注意的是，目前绝大多数低代码平台 schema 都是采用 JSON 格式（也有 yaml、tsx 实现），原因有两点：</p><ol><li>JSON 格式对于前端比较友好，JS 原生支持</li><li>JSON 支持双向编辑，读取和写入一一对象</li></ol><p>其中第二点可以让使用者在平台上直接编辑或导入 JSON，对于熟悉的开发者来说，直接操作 JSON ，比在属性面板查找配置参数效率更高。</p><p>JSON 也有缺点：</p><ol><li>格式过于严格，比如必须双引号、行尾不能有分号等</li><li>不支持注释</li></ol><p>经常碰到的 case 就是 debug 半天，发现是少了一个双引号，特别奔溃…</p><h3 id="2-数据模型">2. 数据模型</h3><p>「可视化搭建」只是实现了将组件映射到画布的 UI 展示能力，实际场景下往往需要将数据绑定到 UI，并通过用户交互，将数据再提交到服务端。这一步在 TARS 上是通过「数据模型」来实现。</p><p>注意：</p><p>可视化设计器可分为「设计态」和「渲染态」，设计态可以修改组件配置，绑定数据字段，其中字段绑定并不立即生效。</p><p>预览态无法变更组件配置和数据绑定字段，但会根据设计态的配置生成实例信息</p><h4 id="场景-1表单提交">场景 1：表单提交</h4><p><img src="https://raw.githubusercontent.com/wulucxy/blog/master/src/assets/imgs/posts/principle-of-lowcode/tars1.png" alt="image"/></p><p>「渲染态」模式下用户在该表单项内输入的内容会存储到 <code>username</code> 字段</p><h4 id="场景-2接口获取">场景 2：接口获取</h4><p><img src="https://raw.githubusercontent.com/wulucxy/blog/master/src/assets/imgs/posts/principle-of-lowcode/tars2.png" alt="image"/></p><p>「渲染态」会从接口返回结果渲染对应表格字段</p><h3 id="场景-3组件联动">场景 3：组件联动</h3><p><img src="https://raw.githubusercontent.com/wulucxy/blog/master/src/assets/imgs/posts/principle-of-lowcode/tars3.png" alt="image"/></p><p>「渲染态」根据用户字段值变更动态展示组件</p><h4 id="实现原理">实现原理</h4><p>加入数据绑定逻辑之后，原有 schema 字段就不够用了，参考 <a class=" " href="https://formilyjs.org/zh-CN/">formily</a>，我们引入一个新的字段：<code>x-field</code> 用于数据绑定。</p><p>更新之后的 schema 定义：</p><pre><code>interface NodeSchema {
+componentName: string;
+  props?: {
+    [key: string]: unknown;
+  };
+  &#x27;x-field&#x27;?: unknown;
+  children?: NodeSchema[]
+}
+</code></pre><p><code>x-field</code> 的状态管理使用 redux 实现， redux 虽然代码比较繁琐，好处也是很明显的，数据流清晰明了，可以精确控制订阅。基于 immutable 的数据状态方便实现历史记录管理。</p><p><code>x-field</code> 可配置属性目前包括：</p><ul><li>name: 字段唯一名称，如 username</li><li>defaultValue：默认值，可配置 string/number/bool/exp/Date 等</li><li>valuePropName: 事件绑定字段，默认为 value，如果是 Radio 单选，需要配置未 checked</li><li>reactionMeta: 组件联动，支持可视化和表达式能力</li><li>validate rules: 暂不支持</li></ul><h5 id="渲染态实现">渲染态实现</h5><p>渲染态对于页面 schema 的渲染和设计态是一样的，通过组件递归实现页面组件树渲染。根据 schema 配置，如果配置了 <code>x-field</code> 字段，就给组件包裹一个 <code>windBind</code> 高阶组件。</p><p><code>withBind</code> 会接收 <code>x-field</code> 配置，并从 <code>redux</code> 中获取已绑定数据，完成数据绑定。</p><h3 id="3-交互逻辑">3. 交互逻辑</h3><p>有了可视化搭建和数据模型，仅仅是完成了单一组件级别渲染和数据绑定。实际应用内的逻辑往往比组件渲染复杂 N 倍，举一个管控类系统常见的 CRUD 查询功能为例：</p><p><img src="https://raw.githubusercontent.com/wulucxy/blog/master/src/assets/imgs/posts/principle-of-lowcode/tars4.png" alt="image"/></p><ol><li>给每个表单元素，表格列元素绑定相对应的字段</li><li>表单项每次变更需要更新查询条件，查询条件有可能还要获取外部变量</li><li>页面初始化、点击查询/重置、分页条件变更都需要发起异步请求</li><li>异步请求需要根据参数和访问路径进行缓存，参数变更则缓存失效</li><li>异步请求需要做好竞态管理，区分 loading、error、success 不同 UI 展示</li><li>异步请求前置参数、后置返回结果需要进行适配</li><li>异步远程 api 和低代码平台跨域处理</li><li>根据不同的返回结果类型，来决定自定义行为，比如显示弹窗、页面跳转等</li></ol><p>一个简单的 CRUD 查询和表格展示场景，涉及到页面级别组件的交互行为已然不少，这对于设计一套功能完备、符合使用体验、又具备足够灵活性的逻辑编排系统提出了很大的挑战。</p><h4 id="amis-方案">amis 方案</h4><p>amis 采用的是方案是「固化交互行为」，将一些常见的交互行为通过配置化实现，比如弹框是下面的配置：</p><pre><code class="language-json" data-language="json" data-highlighted-line-numbers=""><span class="token punctuation">{</span>
+  <span class="token property">"label"</span><span class="token operator">:</span> <span class="token string">"弹框"</span><span class="token punctuation">,</span>
+  <span class="token property">"type"</span><span class="token operator">:</span> <span class="token string">"button"</span><span class="token punctuation">,</span>
+  <span class="token property">"actionType"</span><span class="token operator">:</span> <span class="token string">"dialog"</span><span class="token punctuation">,</span> <span class="token comment">// actionType 固定交互行为</span>
+  <span class="token property">"dialog"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+    <span class="token property">"title"</span><span class="token operator">:</span> <span class="token string">"弹框"</span><span class="token punctuation">,</span>
+    <span class="token property">"body"</span><span class="token operator">:</span> <span class="token string">"这是个简单的弹框。"</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre><p>amis 支持常见 <code>action</code> 行为类型：</p><ul><li>ui<ul><li>drawer: 抽屉</li><li>toast: 消息弹窗</li><li>dialog: 弹窗</li></ul></li><li>动作<ul><li>submit</li><li>clear</li><li>search</li><li>下载</li><li>跳转链接</li></ul></li><li>网络<ul><li>ajax</li></ul></li><li>表单<ul><li>校验</li><li>提交</li><li>重置</li></ul></li></ul><p>详细文档可参考：
+<a class=" " href="https://aisuda.bce.baidu.com/amis/zh-CN/components/action?page=1">https://aisuda.bce.baidu.com/amis/zh-CN/components/action?page=1</a></p><h4 id="lowcode-engine-方案">lowcode-engine 方案</h4><p>lowcode-engine 采取了「javascript 编程」的方式，可视化界面只提供了组件搭建、属性配置的能力，一旦涉及到交互就需要通过手写 javascript 来实现。</p><p><img src="https://raw.githubusercontent.com/wulucxy/blog/master/src/assets/imgs/posts/principle-of-lowcode/lowcode-engine-2.png" alt="image"/></p><p>通过 javascript 实现的好处在于足够灵活，很多图形化界面难以表达的能力，可以很方便地用代码来实现。</p><p>太灵活当然也有缺陷，长期下来脚本满天飞，项目的可维护性和扩展性会遇到很多挑战。</p><h4 id="outsystems-方案">outSystems 方案</h4><p>outSystems 采取了流程图的策略，将各种逻辑交互能力做成一个元件，并对不同逻辑节点进行组合和串联，真正的逻辑由封装在节点中的函数完成。</p><p><img src="https://raw.githubusercontent.com/wulucxy/blog/master/src/assets/imgs/posts/principle-of-lowcode/outSystems-1.png" alt="image"/></p><p>基于流程图 schema，通过 AST 语法树编译，就可以转成代码。</p><p>示例如下：</p><p><img src="https://raw.githubusercontent.com/wulucxy/blog/master/src/assets/imgs/posts/principle-of-lowcode/outSystems-2.png" alt="image"/></p><p>可以看出，基于流程图实现业务逻辑编排，最终会生成一个完整业务逻辑实现。</p><p>流程图的特点在于强调整个流程的结构和步骤，从实现角度来说，更偏向于「面向过程」的脚本编程。</p><h4 id="blueprint-蓝图方案">BluePrint 蓝图方案</h4><p>BluePrint 最早由 unreal4 推出，主要用于游戏领域创建交互式程序。它允许非开发人员通过图形化界面来创建代码逻辑，而不需要编写传统代码。BluePrint 广泛用于游戏领域创建角色、动画、关卡、特效等，也可以用于创建游戏领域的交互流程、用户界面等。</p><p><img src="https://raw.githubusercontent.com/wulucxy/blog/master/src/assets/imgs/posts/principle-of-lowcode/bluePrint.png" alt="image"/></p><p>BluePrint 采用逻辑编排有别于「流程图」方案，BluePrint 逻辑元素包括输入和输出，前一个元素的输出作为下一个节点的输入，逻辑编排更加强调信息的流动和数据处理的过程，便于追踪数据流转的轨迹。</p><p>相对于「流程图」更加关注「面向过程」的脚本编程，「逻辑编排」方案基于数据流驱动的方式，更接近「面向对象」的实现。</p><p>基于以上的产品调研方案，TARS 设计逻辑编排模块选择的方案是更接近「Blueprint 蓝图」的实现。</p><h3 id="tars-设计方案">TARS 设计方案</h3><p><img src="https://raw.githubusercontent.com/wulucxy/blog/master/src/assets/imgs/posts/principle-of-lowcode/tars5.png" alt="image"/></p><p>TARS 逻辑编排包括以下定义：</p><ol><li>图编排</li><li>逻辑物料</li><li>编排函数</li><li>变量</li><li>图编排解析</li></ol><h4 id="1-图编排">1. 图编排</h4><p>「图编排」可分为「节点」和「连线」。</p><p>节点可以实现数据转换、网络请求、属性设置、变量操作等能力，一个节点可以有「输入」和「输出」端口。</p><p>连线用来连接各个节点，代表数据的流动关系。</p><h4 id="2-逻辑物料">2. 逻辑物料</h4><p>同可视化搭建一样，逻辑编排的物料也封装了部分业务逻辑，系统已经提供一些常见的物料，比如循环、合并/拆分数据、异步请求、组件操作等。</p><h4 id="3-编排函数">3. 编排函数</h4><p>逻辑物料编排之后的产物可以被复用，类似于编程语言里面的「函数」，「函数」具备和编排节点一样的输入、输出逻辑。</p><h4 id="4-变量">4. 变量</h4><p>变量可以被可视化搭建生成的组件消费，逻辑编排内部节点可以操作、监听上下文变量，变量可以在编排图里自由流动。</p><h4 id="5-图编排解析">5. 图编排解析</h4><p>逻辑编排生成的 schema 最终类似如下：</p><pre><code class="language-json" data-language="json" data-highlighted-line-numbers=""><span class="token punctuation">{</span>
+    <span class="token property">"nodes"</span><span class="token operator">:</span> <span class="token punctuation">[</span>
+      <span class="token punctuation">{</span>
+        <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"xx-xx"</span><span class="token punctuation">,</span>
+        <span class="token property">"label"</span><span class="token operator">:</span> <span class="token string">"开始节点"</span><span class="token punctuation">,</span>
+        <span class="token property">"type"</span><span class="token operator">:</span> <span class="token string">"StartNode"</span><span class="token punctuation">,</span>
+        <span class="token property">"materialName"</span><span class="token operator">:</span> <span class="token string">"start"</span><span class="token punctuation">,</span>
+        <span class="token property">"name"</span><span class="token operator">:</span> <span class="token string">"input"</span><span class="token punctuation">,</span>
+      <span class="token punctuation">}</span><span class="token punctuation">,</span>
+      <span class="token punctuation">{</span>
+        <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"xx"</span><span class="token punctuation">,</span>
+        <span class="token property">"label"</span><span class="token operator">:</span> <span class="token string">"读取字段"</span><span class="token punctuation">,</span>
+        <span class="token property">"type"</span><span class="token operator">:</span> <span class="token string">"DefaultNode"</span><span class="token punctuation">,</span>
+        <span class="token property">"materialName"</span><span class="token operator">:</span> <span class="token string">"readFieldValue"</span><span class="token punctuation">,</span>
+        <span class="token property">"inPorts"</span><span class="token operator">:</span> <span class="token punctuation">[</span>
+          <span class="token punctuation">{</span>
+            <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"tEQUNgfb"</span><span class="token punctuation">,</span>
+            <span class="token property">"name"</span><span class="token operator">:</span> <span class="token string">"input"</span><span class="token punctuation">,</span>
+            <span class="token property">"label"</span><span class="token operator">:</span> <span class="token string">""</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">]</span><span class="token punctuation">,</span>
+        <span class="token property">"outPorts"</span><span class="token operator">:</span> <span class="token punctuation">[</span>
+          <span class="token punctuation">{</span>
+            <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"8p96kW7b"</span><span class="token punctuation">,</span>
+            <span class="token property">"name"</span><span class="token operator">:</span> <span class="token string">"output"</span><span class="token punctuation">,</span>
+            <span class="token property">"label"</span><span class="token operator">:</span> <span class="token string">""</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">]</span><span class="token punctuation">,</span>
+        <span class="token property">"config"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+          <span class="token property">"fieldPath"</span><span class="token operator">:</span> <span class="token string">"userIdList"</span>
+        <span class="token punctuation">}</span>
+      <span class="token punctuation">}</span><span class="token punctuation">,</span>
+      <span class="token punctuation">{</span>
+        <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"xx-xx"</span><span class="token punctuation">,</span>
+        <span class="token property">"label"</span><span class="token operator">:</span> <span class="token string">"异步请求"</span><span class="token punctuation">,</span>
+        <span class="token property">"type"</span><span class="token operator">:</span> <span class="token string">"DefaultNode"</span><span class="token punctuation">,</span>
+        <span class="token property">"materialName"</span><span class="token operator">:</span> <span class="token string">"request"</span><span class="token punctuation">,</span>
+        <span class="token property">"inPorts"</span><span class="token operator">:</span> <span class="token punctuation">[</span>
+          <span class="token punctuation">{</span>
+            <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"Xsul0sja"</span><span class="token punctuation">,</span>
+            <span class="token property">"name"</span><span class="token operator">:</span> <span class="token string">"input"</span><span class="token punctuation">,</span>
+            <span class="token property">"label"</span><span class="token operator">:</span> <span class="token string">""</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">]</span><span class="token punctuation">,</span>
+        <span class="token property">"outPorts"</span><span class="token operator">:</span> <span class="token punctuation">[</span>
+          <span class="token punctuation">{</span>
+            <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"6XBGQJJB"</span><span class="token punctuation">,</span>
+            <span class="token property">"name"</span><span class="token operator">:</span> <span class="token string">"success"</span><span class="token punctuation">,</span>
+            <span class="token property">"label"</span><span class="token operator">:</span> <span class="token string">"success"</span>
+          <span class="token punctuation">}</span><span class="token punctuation">,</span>
+          <span class="token punctuation">{</span>
+            <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"RXsjBC68"</span><span class="token punctuation">,</span>
+            <span class="token property">"name"</span><span class="token operator">:</span> <span class="token string">"loading"</span><span class="token punctuation">,</span>
+            <span class="token property">"label"</span><span class="token operator">:</span> <span class="token string">"loading"</span>
+          <span class="token punctuation">}</span><span class="token punctuation">,</span>
+          <span class="token punctuation">{</span>
+            <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"4jV6aZDL"</span><span class="token punctuation">,</span>
+            <span class="token property">"name"</span><span class="token operator">:</span> <span class="token string">"error"</span><span class="token punctuation">,</span>
+            <span class="token property">"label"</span><span class="token operator">:</span> <span class="token string">"error"</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">]</span><span class="token punctuation">,</span>
+        <span class="token property">"config"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+          <span class="token property">"apiControl"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+            <span class="token property">"apiType"</span><span class="token operator">:</span> <span class="token string">"customApi"</span><span class="token punctuation">,</span>
+            <span class="token property">"data"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+              <span class="token property">"url"</span><span class="token operator">:</span> <span class="token string">"http://alkaidos.cn/api/app/user-center/user/queryUserDetail"</span><span class="token punctuation">,</span>
+              <span class="token property">"method"</span><span class="token operator">:</span> <span class="token string">"GET"</span>
+            <span class="token punctuation">}</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span>
+      <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    <span class="token punctuation">]</span><span class="token punctuation">,</span>
+    <span class="token property">"edges"</span><span class="token operator">:</span> <span class="token punctuation">[</span>
+      <span class="token punctuation">{</span>
+        <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"xx-xx"</span><span class="token punctuation">,</span>
+        <span class="token property">"source"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+          <span class="token property">"nodeId"</span><span class="token operator">:</span> <span class="token string">"xx-xx"</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        <span class="token property">"target"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+          <span class="token property">"nodeId"</span><span class="token operator">:</span> <span class="token string">"xx-xx"</span><span class="token punctuation">,</span>
+          <span class="token property">"portId"</span><span class="token operator">:</span> <span class="token string">"xx-xx"</span>
+        <span class="token punctuation">}</span>
+      <span class="token punctuation">}</span><span class="token punctuation">,</span>
+      <span class="token punctuation">{</span>
+        <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"xx-xx"</span><span class="token punctuation">,</span>
+        <span class="token property">"source"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+          <span class="token property">"nodeId"</span><span class="token operator">:</span> <span class="token string">"xx-xx"</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        <span class="token property">"target"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+          <span class="token property">"nodeId"</span><span class="token operator">:</span> <span class="token string">"xx-xx"</span><span class="token punctuation">,</span>
+          <span class="token property">"portId"</span><span class="token operator">:</span> <span class="token string">"xx-xx"</span>
+        <span class="token punctuation">}</span>
+      <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    <span class="token punctuation">]</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre><p>图编排解析引擎主要做两件事情：</p><ol><li>解析编排图上的所有节点（nodes），根据每个节点的「输入端口（inPorts）」和「输出端口（outPorts）」配置生成「连接点（jointer）」实例，每个「连接点」实例有从上游连接点（如果有）获取输入数据（inputValue），内部进行数据处理之后，传递给「输出端口」生成的「连接点」实例</li><li>解析所有连线（edges），连线逻辑相对简单，只负责建立「输出连接点」和「输入连接点」的关联，数据信息就会从上游节点的「输出连接点」流动到下游节点的「输入连接点」</li></ol><h4 id="demo-示例">DEMO 示例</h4><p>以一个管控平面类系统最为常见的表格查询场景为例：</p><p><img src="https://raw.githubusercontent.com/wulucxy/blog/master/src/assets/imgs/posts/principle-of-lowcode/tars6.png" alt="image"/></p><ol><li>定义一个变量：dataSource，作为表格的数据来源</li><li>定义一个函数图编排。函数图编排从「初始节点」开始，获取相应查询字段，
+执行完合并逻辑，生成一个新查询对象，通过自定义的 js 方法进行数据组装（这一步非必需），
+传递给「异步请求」节点，请求成功后将结果赋值给 dataSouce 变量</li></ol><p><img src="https://raw.githubusercontent.com/wulucxy/blog/master/src/assets/imgs/posts/principle-of-lowcode/tars7.png" alt="image"/></p><p>3.「查询按钮」订阅点击事件，触发函数图编排调用。</p><p><img src="https://raw.githubusercontent.com/wulucxy/blog/master/src/assets/imgs/posts/principle-of-lowcode/tars8.png" alt="image"/></p><ol start="4"><li>表格组件监听 <code>dataSource</code> 变量，每次变更后更新数据源属性。完成渲染。</li></ol><p>可以发现，基于逻辑图编排沿用了开发者的日常开发习惯，从定义变量、封装函数、事件监听到设置属性，对于开发者来说都是水到渠成。</p><p>每一个逻辑节点只需关心输入（input）和输出（output），业务逻辑都固化到节点内部，节点间功能相互独立，高内聚低耦合。</p><p>且节点间可以串联生成新的图节点，基于函数实现业务逻辑的可复用。</p><h2 id="one-more-thing">one more thing</h2><p>基于 AI 语言大模型和低代码的结合，是业界讨论的热点。TARS 在这方面也有了一些尝试，并在线上跑通了部分场景，具体效果怎样，后续有机会再分享。</p><h2 id="最后">最后</h2><ol><li>19 年前后，在上一家公司也参与过前端低代码平台的尝试，当时做的平台名也叫 TARS。
+这次重新开始折腾，第一个想到的名称也是 TARS，也算是一种承前启后。</li><li>TARS 研发过程中得到了开源社区很多热心老师的帮助，很多灵感都来自于你们的启发，感恩。</li></ol></div><footer class="BlogPostLayout_footer__1DZxO"><h3 class="BlogPostLayout_title__1TCtk"><a class=" " href="/">qingtong Blog</a></h3><div class="
+      Bio_Bio__1xPtR
+      BlogPostLayout_bio__vsFE-
+    "><img src="https://www.gravatar.com/avatar/aa99b351245441b8ca95d54a52d2998c.jpg?s=56&amp;d=identicon" alt="Me"/><p>来自接地气的一线实践开发经验，用心做原创<br/>分享关于 React、数据可视化、效率工具等，打造专业前端知识库</p></div><section class="BlogPostLayout_links__LI8RB"><a class="BlogPostLayout_next__qd2f_ " href="/posts/2023-04-05/copilot/">从 Copilot 来看 LLM 应用落地<!-- --> →</a></section></footer></article></main></div></div><script>!function(u){function e(e){for(var t,r,n=e[0],o=e[1],c=e[2],a=0,f=[];a<n.length;a++)r=n[a],l[r]&&f.push(l[r][0]),l[r]=0;for(t in o)Object.prototype.hasOwnProperty.call(o,t)&&(u[t]=o[t]);for(p&&p(e);f.length;)f.shift()();return i.push.apply(i,c||[]),d()}function d(){for(var e,t=0;t<i.length;t++){for(var r=i[t],n=!0,o=1;o<r.length;o++){var c=r[o];0!==l[c]&&(n=!1)}n&&(i.splice(t--,1),e=s(s.s=r[0]))}return e}var r={},f={27:0},l={27:0},i=[];function s(e){if(r[e])return r[e].exports;var t=r[e]={i:e,l:!1,exports:{}};return u[e].call(t.exports,t,t.exports,s),t.l=!0,t.exports}s.e=function(i){var e=[];f[i]?e.push(f[i]):0!==f[i]&&{1:1,14:1,21:1}[i]&&e.push(f[i]=new Promise(function(e,n){for(var t="static/css/"+({}[i]||i)+"."+{1:"256ccf89",2:"31d6cfe0",3:"31d6cfe0",4:"31d6cfe0",5:"31d6cfe0",6:"31d6cfe0",7:"31d6cfe0",8:"31d6cfe0",9:"31d6cfe0",10:"31d6cfe0",11:"31d6cfe0",12:"31d6cfe0",13:"31d6cfe0",14:"eb339734",15:"31d6cfe0",16:"31d6cfe0",17:"31d6cfe0",18:"31d6cfe0",19:"31d6cfe0",20:"31d6cfe0",21:"af8fefa4",22:"31d6cfe0",23:"31d6cfe0",24:"31d6cfe0",25:"31d6cfe0"}[i]+".chunk.css",o=s.p+t,r=document.getElementsByTagName("link"),c=0;c<r.length;c++){var a=(u=r[c]).getAttribute("data-href")||u.getAttribute("href");if("stylesheet"===u.rel&&(a===t||a===o))return e()}var f=document.getElementsByTagName("style");for(c=0;c<f.length;c++){var u;if((a=(u=f[c]).getAttribute("data-href"))===t||a===o)return e()}var d=document.createElement("link");d.rel="stylesheet",d.type="text/css",d.onload=e,d.onerror=function(e){var t=e&&e.target&&e.target.src||o,r=new Error("Loading CSS chunk "+i+" failed.\n("+t+")");r.request=t,n(r)},d.href=o,document.getElementsByTagName("head")[0].appendChild(d)}).then(function(){f[i]=0}));var r=l[i];if(0!==r)if(r)e.push(r[2]);else{var t=new Promise(function(e,t){r=l[i]=[e,t]});e.push(r[2]=t);var n,o=document.getElementsByTagName("head")[0],c=document.createElement("script");c.charset="utf-8",c.timeout=120,s.nc&&c.setAttribute("nonce",s.nc),c.src=s.p+"static/js/"+({}[i]||i)+"."+{1:"9cf5b42e",2:"eaf673cb",3:"6888bba0",4:"d2a7707a",5:"6ab795cc",6:"65947da0",7:"dedb6494",8:"a2ed3c61",9:"1c7896e9",10:"87ace4b5",11:"70945193",12:"a49b4820",13:"c2f91851",14:"29f37b8e",15:"10420619",16:"d5004db3",17:"e1882e9d",18:"89f2a483",19:"05bf0fe7",20:"2b184264",21:"54d0e0eb",22:"c8454142",23:"9b1164ac",24:"582f6c46",25:"0c33dae5"}[i]+".chunk.js",n=function(e){c.onerror=c.onload=null,clearTimeout(a);var t=l[i];if(0!==t){if(t){var r=e&&("load"===e.type?"missing":e.type),n=e&&e.target&&e.target.src,o=new Error("Loading chunk "+i+" failed.\n("+r+": "+n+")");o.type=r,o.request=n,t[1](o)}l[i]=void 0}};var a=setTimeout(function(){n({type:"timeout",target:c})},12e4);c.onerror=c.onload=n,o.appendChild(c)}return Promise.all(e)},s.m=u,s.c=r,s.d=function(e,t,r){s.o(e,t)||Object.defineProperty(e,t,{enumerable:!0,get:r})},s.r=function(e){"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(e,"__esModule",{value:!0})},s.t=function(t,e){if(1&e&&(t=s(t)),8&e)return t;if(4&e&&"object"==typeof t&&t&&t.__esModule)return t;var r=Object.create(null);if(s.r(r),Object.defineProperty(r,"default",{enumerable:!0,value:t}),2&e&&"string"!=typeof t)for(var n in t)s.d(r,n,function(e){return t[e]}.bind(null,n));return r},s.n=function(e){var t=e&&e.__esModule?function(){return e.default}:function(){return e};return s.d(t,"a",t),t},s.o=function(e,t){return Object.prototype.hasOwnProperty.call(e,t)},s.p="/blog/",s.oe=function(e){throw console.error(e),e};var t=window.webpackJsonp=window.webpackJsonp||[],n=t.push.bind(t);t.push=e,t=t.slice();for(var o=0;o<t.length;o++)e(t[o]);var p=n;d()}([])</script><script src="/blog/static/js/26.62626c06.chunk.js"></script><script src="/blog/static/js/main.756aefc6.chunk.js"></script></body></html>
