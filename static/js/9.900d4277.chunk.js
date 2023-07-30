@@ -1,0 +1,2 @@
+(window.webpackJsonp=window.webpackJsonp||[]).push([[9],{90:function(e,n,t){"use strict";t.r(n),n.default={title:"welcome",spoiler:"\u5982\u4f55\u53c2\u4e0e\u5206\u4eab\uff0c\u8d21\u732e\u4f60\u7684 idea",getContent:function(){return t.e(19).then(t.bind(null,77))}}}}]);
+//# sourceMappingURL=9.900d4277.chunk.js.map
