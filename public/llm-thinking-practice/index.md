@@ -193,7 +193,11 @@ D2C 这个概念近几年来一直很火热，但截至目前还没有真正成�
 
 但是低代码平台通常不会直接生成 html，而是使用 DSL 语言来描述页面配置（通常是 JSON），TARS 实现了一套简单通用，且语义表达丰富的协议，可以根据用户的描述来生成 schema。
 
+#### 蚂蚁金服竞品介绍
+
 [蚂蚁金服 ai + 低代码方案](https://content-static.cctvnews.cctv.com/snow-book/video.html?item_id=8846568672753571151&t=1699519183813&toc_style_id=video_default&share_to=wechat&track_id=e8dbdcf4-9dbf-461d-8222-d13a63ae64c4)
+
+#### 内部产品 DEMO 演示
 
 <video width="100%" controls>
   <source src="./assets/tars.m4v" type="video/mp4" />
