@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --text: #222;
+  --title: #222;
+  --bg: white;
+  --code-bg: #232936;
+  --link: #d23669;
+  --inlineCode-bg: rgba(255, 229, 100, 0.2);
+  --inlineCode-text: #1a1a1a;
+  --pink: lab(63 59.32 -1.47);
+  --purple: lab(33 42.09 -43.19);
+  --primary-color: #d23669;
+  --primary-color-light: rgb(255, 167, 196);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color: rgba(0, 0, 0, 0.9);
+  font: 100%/1.75 Morriweather, Georgia, serif;
+}
+
+body {
+  font-kerning: normal;
+  font-family: "Merriweather", "Georgia", serif;
+  font-feature-settings: "kern", "liga", "clig", "calt";
+  font-weight: 400;
+  margin: 0;
+  padding: 0;
+  word-wrap: break-word;
+}
+
+pre,
+code {
+  font-family: Consolas, Menlo, Monaco, source-code-pro, "Courier New",
+    monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+pre {
+  border-radius: 10px;
+  overflow: auto;
+  padding: 1em;
+}
+
+a {
+  color: var(--primary-color);
+}
+a:hover {
+  text-decoration: none;
+}
+
+p,
+pre,
+ul,
+ol {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+blockquote {
+  margin: 0;
+  padding: 0 1em;
+  color: #6a737d;
+  border-left: 0.25em solid #dfe2e5;
+}
+
+.media @media (prefers-color-scheme: dark) {
+  :root {
+    --text: rgba(255, 255, 255, 0.88);
+    --title: white;
+    --bg: rgb(40, 44, 53);
+    --code-bg: #191d27;
+    --link: #ffa7c4;
+    --inlineCode-bg: rgba(115, 124, 153, 0.2);
+    --inlineCode-text: #e6e6e6;
+    --pink: lab(81 32.36 -7.02);
+    --purple: lab(78 19.97 -36.75);
+  }
+}
+@property --myColor1 {
+  syntax: "<color>";
+  initial-value: #222;
+  inherits: false;
+}
+@property --myColor2 {
+  syntax: "<color>";
+  initial-value: #222;
+  inherits: false;
+}
+@media (prefers-color-scheme: dark) {
+  @property --myColor1 {
+    syntax: "<color>";
+    initial-value: rgba(255, 255, 255, 0.88);
+    inherits: false;
+  }
+  @property --myColor2 {
+    syntax: "<color>";
+    initial-value: rgba(255, 255, 255, 0.88);
+    inherits: false;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@media (prefers-reduced-motion) {
+  * {
+    transition: none !important;
+    transform: none !important;
+  }
+}

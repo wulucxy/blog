@@ -1,0 +1,197 @@
+.markdown img {
+  display: inline-block;
+  max-width: 100%;
+  height: auto;
+}
+.markdown hr {
+  background: hsla(0, 0%, 0%, 0.2);
+  border: none;
+  height: 1px;
+}
+
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  font-weight: 900;
+  line-height: 1.1;
+  margin-top: 3.5rem;
+  text-rendering: optimizeLegibility;
+}
+
+/**
+  * Based on copypasta from Remy Bach and Sarah Drasner
+  */
+.markdown code,
+.markdown pre {
+  color: white;
+  font-family: Consolas, Menlo, Monaco, source-code-pro, Courier New, monospace;
+  font-feature-settings: normal;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  line-height: 1.5;
+  tab-size: 4;
+  hyphens: none;
+}
+
+/* Code blocks */
+.markdown pre {
+  overflow: auto;
+  padding: 1em;
+}
+
+.markdown :not(pre) > code,
+.markdown pre {
+  background: hsla(0, 0%, 0%, 0.9);
+}
+
+.markdown pre::-moz-selection,
+.markdown pre::selection {
+  background: hsl(207, 4%, 16%);
+}
+
+/* Text Selection colour */
+.markdown pre::-moz-selection,
+.markdown pre ::-moz-selection {
+  text-shadow: none;
+  background: hsla(0, 0%, 100%, 0.15);
+}
+
+.markdown pre::selection,
+.markdown pre ::selection {
+  text-shadow: none;
+  background: hsla(0, 0%, 100%, 0.15);
+}
+
+/* Inline code */
+.markdown :not(pre) > code {
+  border-radius: 0.3em;
+  background: rgba(255, 229, 100, 0.2);
+  color: #1a1a1a;
+  padding: 0.15em 0.2em 0.05em;
+  white-space: normal;
+}
+.markdown a > code {
+  color: var(--primary-color);
+}
+
+table {
+  padding: 0;
+  border-collapse:collapse;
+}
+table tr {
+  border-top: 1px solid #cccccc;
+  background-color: white;
+  margin: 0;
+  padding: 0;
+}
+
+table tr:nth-child(2n) {
+  background-color: #f8f8f8;
+}
+
+table tr th {
+  font-weight: bold;
+  border: 1px solid #cccccc;
+  text-align: left;
+  margin: 0;
+  padding: 6px 13px;
+}
+
+table tr td {
+  border: 1px solid #cccccc;
+  text-align: left;
+  margin: 0;
+  padding: 6px 13px;
+}
+
+table tr th :first-child, table tr td :first-child {
+  margin-top: 0;
+}
+
+table tr th :last-child, table tr td :last-child {
+  margin-bottom: 0;
+}
+
+.markdown :global(.highlighted-line) {
+  background-color: hsla(207, 95%, 15%, 1);
+  display: block;
+  margin-right: -1em;
+  margin-left: -1em;
+  padding-right: 1em;
+  padding-left: 0.75em;
+  border-left: 0.25em solid #ffa7c4;
+}
+
+.markdown :global(.token.attr-name) {
+  color: rgb(173, 219, 103);
+  font-style: italic;
+}
+
+.markdown :global(.token.comment) {
+  color: rgb(99, 119, 119);
+}
+
+.markdown :global(.token.string),
+.markdown :global(.token.url) {
+  color: rgb(173, 219, 103);
+}
+
+.markdown :global(.token.variable) {
+  color: rgb(214, 222, 235);
+}
+
+.markdown :global(.token.number) {
+  color: rgb(247, 140, 108);
+}
+
+.markdown :global(.token.builtin),
+.markdown :global(.token.char),
+.markdown :global(.token.constant),
+.markdown :global(.token.function) {
+  color: rgb(130, 170, 255);
+}
+
+.markdown :global(.token.punctuation) {
+  color: rgb(199, 146, 234);
+}
+
+.markdown :global(.token.selector),
+.markdown :global(.token.doctype) {
+  color: rgb(199, 146, 234);
+  font-style: "italic";
+}
+
+.markdown :global(.token.class-name) {
+  color: rgb(255, 203, 139);
+}
+
+.markdown :global(.token.tag),
+.markdown :global(.token.operator),
+.markdown :global(.token.keyword) {
+  color: #ffa7c4;
+}
+
+.markdown :global(.token.boolean) {
+  color: rgb(255, 88, 116);
+}
+
+.markdown :global(.token.property) {
+  color: rgb(128, 203, 196);
+}
+
+.markdown :global(.token.namespace) {
+  color: rgb(178, 204, 214);
+}
+.markdown :global(.token.deleted) {
+  background: #fdd;
+  color: #4d4d4c;
+}
+.markdown :global(.token.inserted) {
+  background: #dfd;
+  color: #4d4d4c;
+}
