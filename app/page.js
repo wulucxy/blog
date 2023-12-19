@@ -8,7 +8,7 @@ export const metadata = {
   description: "A personal blog by qingtong",
 };
 
-export async function getPosts() {
+async function getPosts() {
   const entries = await readdir("./public/", { withFileTypes: true });
   const dirs = entries
     .filter((entry) => entry.isDirectory())
