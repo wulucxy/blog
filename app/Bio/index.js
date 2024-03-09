@@ -24,7 +24,7 @@ export default function Bio() {
         <p className="flex-1">
           来自接地气的一线实践开发经验，用心做原创
           <br />
-          分享关于低代码、数据可视化、效率工具等，打造专业前端知识库
+          分享关于大模型、低代码、工程化等，打造专业前端知识库
         </p>
       </div>
     </header>
