@@ -27,7 +27,7 @@ TARS 是一款面向前端页面生成低代码平台。随着大模型（LLM）
 
 1. 组件文档和 system prompt 基于 excel 同步，无法即使更新，难以做 prompt 工程化
 2. 调试困难，从使用者提交对话，到大模型返回结果，难以跟踪完整链路
-3. 角色错位，作为低代码平台的开发者和使用者，前端并未参与到大模型应用的核心流程
+3. 角色错位，作为低代码平台的开发者和使用者，前端未参与到大模型应用的核心流程
 
 ### 2. 看山不是山
 
@@ -42,12 +42,12 @@ TARS 是一款面向前端页面生成低代码平台。随着大模型（LLM）
 1. 前端对于大模型调用链路有完整的控制能力，可调试可跟踪
 2. system message 和组件文档和代码一起管理，方便 prompt 工程化
 3. 返回结果做了一层后处理（post processing），确保返回结果健壮可用
-4. 支持页面无限修改，前提是未超出 openAI token 限制
+4. 支持页面无限修改，前提是未超出 token 限制
 
 方案的缺陷也很明显：
 
 1. 每次发送全量组件文档，token 消耗成本高。一旦组件文档超出限制，系统完全不可用
-2. 数据安全风险，每次送的 prompt 包含了 system message 信息，数据安全无法保障
+2. 数据安全风险，每次发送 prompt 包含了 system message 信息，数据安全无法保障
 
 ### 3. 看山还是山
 
@@ -74,21 +74,21 @@ TARS 是一款面向前端页面生成低代码平台。随着大模型（LLM）
   数据库存储单条数据有容量限制，所以需要对源数据进行拆分(split)生成文本块（chunk）。常见有 TextSplitter, MarkdownSplitter 等
 
 - embedder
+
   将文本转换为向量的过程称之为 embedding。本质上大模型无法直接识别文本，而是理解文本背后的 token，向量化的过程就是将
   token 转化为一组二维数组。
+
 - vector store
 
   向量数据库是 RAG 的核心，向量数据库存储 embedding 后的向量和原始文本，并提供向量相似性对比用于检索匹配的文本。
 
 - prompt
 
-      prompt 提示是用户与大模型的交互入口，prompt 质量很大程度上决定了 LLM 返回结果是否符合预期，所以 prompt engineering
-
-  一直来都是大模型应用实践的重点
+  prompt 提示是用户与大模型的交互入口，prompt 质量很大程度上决定了 LLM 返回结果是否符合预期，所以 prompt engineering 一直来都是大模型应用实践的重点
 
 - model
 
-  模型对 LLM 进行一层封装，并对外提供一个公共基类。模型通常支持流式输出和普通输出两种方式。
+  模型对 LLM 进行一层封装，并对外提供一个公共基类。模型通常支持流式输出和批量输出两种方式。
 
 - retriever
 
@@ -148,8 +148,7 @@ TARS 直接沿用了之前已经在使用的 Milvus。值得注意的是，TARS 
 
 按照使用场景分类，模型可分为以下两种常见类型：
 
-1. completion（自动补全）：最基础的大模型类别，AI 通过分析已有的上下文信息，基于用户当前输入内容，来预测下一段可能出现的序列。
-   completion 常用于文字编辑、代码编程等。
+1. completion（自动补全）：最基础的大模型类别，AI 通过分析已有的上下文信息，基于用户当前输入内容，来预测下一段可能出现的序列。completion 常用于文字编辑、代码编程等。
 2. chat-completion(聊天)：相比于 completion，聊天模型增加了 role 角色信息，role 可以是 system（系统角色），assistant(助理)，user（用户）和 function（函数式调用）。
 
 模型推理结果输出方式有两种：
@@ -246,7 +245,7 @@ Prompt 是用户和大模型交互的入口。通常可以将 Prompt 分为 4 �
 
 ![image](./assets/prompt.png)
 
-考虑到数据的准确性和安全性，通常 Instruction 和 Context 是不对用户开放的，所以这两者又称为 hidden prompt(隐藏提示词) 或者 system prompt（系统提示词），隐藏提示词一般放在对话的最前面。
+考虑到数据的准确性和安全性，通常 Instruction 和 Context 是不对用户开放的，所以这两者又称为 hidden prompt(隐藏提示词)，隐藏提示词一般放在对话的最前面。
 
 > hidden prompt 有时又称为 system prompt（系统提示词）
 
@@ -275,7 +274,6 @@ export interface PromptMessageContext {
 }
 
 // 接受template 模板、context上下文入参
-// 其中 template 基于 nunjucks 模板实现
 export class PromptMessageWithContext {
   // 外部传入的 prompt 模板，支持纯文本，Message
   private template: string | ChatRequestMessage | ChatRequestMessage[];
@@ -284,7 +282,6 @@ export class PromptMessageWithContext {
   async render(values: {
     query: string;
     context: PromptMessageContext;
-    customData: CustomData;
     customData: CustomData;
   }) {
     const message = fromTemplate(this.template, {
@@ -379,7 +376,9 @@ export const promptTemplate = [
 ```
 
 > query: 用户当前输入
+>
 > chunks: 根据用户输入从 vector store 检索并召回的组件文档
+>
 > customData: 业务自定义数据，这里提供了页面组件树作为 ai 修改的上下文来源
 
 在提示词工程（prompt engineering）方面目前主要使用 few-shot，好处是足够简单且通用，效果也基本符合预期。
@@ -411,7 +410,6 @@ export function makeRagGenerateUserPrompt(params: {
         userMessage: prompt,
       };
     } catch (err) {
-      console.error("====makeRagGenerateUserPrompt error===", err);
       throw err;
     }
   };
@@ -422,7 +420,9 @@ export function makeRagGenerateUserPrompt(params: {
 
 #### 2. 推理结果后处理（post processing）
 
-大模型是一个很通用的技术，可以用来做很多类型应用。但大模型作为一个基于概率分布的预测引擎，在一些对精度容忍度较低的场景下，大模型往往不一定适用。并且大模型天然存在幻觉问题，至今无法克服。在低代码这样一个对于生成 schema 精度要求较高的领域，我们需要对推理结果进行后处理（post processing），基于防御性编程的方式，即使模型返回结果不符合预期，也有兜底的方案。
+大模型是一个很通用的技术，可以用来做很多类型应用。但大模型作为一个基于概率分布的预测引擎，在一些对精度容忍度较低的场景下，大模型往往不一定适用。并且大模型天然存在幻觉问题，至今无法克服。
+
+在低代码这样一个对于生成 schema 精度要求较高的领域，我们需要对推理结果进行后处理（post processing），基于防御性编程的方式，即使模型返回结果不符合预期，也有兜底的方案。
 
 以 `Form` 组件为例：
 
