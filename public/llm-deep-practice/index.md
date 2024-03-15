@@ -572,6 +572,12 @@ model Conversation {
 }
 ```
 
+3. prisma 默认访问的是国外源，可能会出现无法下载，建议设置国内源
+
+```Dockerfile
+ENV PRISMA_BINARIES_MIRROR http://npmmirror.com/mirrors/prisma/
+```
+
 Prisma Client 提供了强大的 typescript 类型能力，此处见演示。
 
 值得注意的是，Prisma Client 是一个全局实例，无需重复定义。

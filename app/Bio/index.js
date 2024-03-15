@@ -5,8 +5,12 @@ import Image from "next/image";
 import Link from "../Link";
 import HomeLink from "../HomeLink";
 import icon from "./icon.png";
+import wechat from "./wechat.jpg";
 
 export default function Bio() {
+  const pathname = usePathname();
+  const isHome = pathname === "/";
+
   return (
     <header>
       <h1>
@@ -15,17 +19,22 @@ export default function Bio() {
         </Link>
       </h1>
       <div className="flex">
-        <Image
-          src={icon}
-          alt="Me"
-          className="mr-2 rounded"
-          style={{ width: "3.5rem", height: "3.5rem" }}
-        />
-        <p className="flex-1">
-          来自接地气的一线实践开发经验，用心做原创
-          <br />
-          分享关于大模型、低代码、工程化等，打造专业前端知识库
-        </p>
+        <div className="flex flex-1">
+          <Image
+            src={icon}
+            alt="Me"
+            className="mr-2 rounded"
+            style={{ width: "3.5rem", height: "3.5rem" }}
+          />
+          <p className="flex-1">
+            江湖夜雨十年灯，一名跨界前端工程师的呓语
+            <br />
+            感兴趣可以关注， 聊聊AI、低代码和其他
+          </p>
+        </div>
+        {!isHome && (
+          <img src={wechat.src} alt="wecaht" style={{ width: "10rem" }} />
+        )}
       </div>
     </header>
   );
