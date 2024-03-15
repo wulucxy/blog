@@ -32,6 +32,7 @@ spoiler: "如何成为更好的开发者"
 class Widget {
   // ❌ NO GOOD
   public numberOfWidget
+
   // ✅ YES
   public size
 }
