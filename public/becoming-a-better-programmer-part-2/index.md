@@ -2,7 +2,7 @@
 title: "如何成为更好的开发者（二）"
 date: "2024-04-06"
 cta: "learn"
-spoiler: "如何成为更好的开发者"
+spoiler: "刻意练习，追求卓越（Practice Makes Perfect）"
 ---
 
 ## 14. 软件开发是...
@@ -848,7 +848,7 @@ QA 负责发现开发中的 bug，即使这不是由于你的原因直接造成�
 
 ### 3. 构建发布（Build the Release）
 
-总是先打 tag，在签出该 tag。
+总是先打 tag，再签出该 tag。
 
 > 永远不要重用任何旧的构建。
 
