@@ -1,5 +1,5 @@
 ---
-title: "RAG 实践入门（1）——RAG 概览"
+title: "RAG 实践入门（01）——RAG 概览"
 date: "2024-04-26"
 cta: "lowcode"
 spoiler: "RAG 实践入门"
