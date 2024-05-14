@@ -380,7 +380,7 @@ LoadBalancer Service 是对 NodePort Service 的优化。NodePort Service 不支
 
 LoadBalancer 将 Service 放置到 Node 之前，确保外部发送的请求能够被转发到健康的节点上，此时项目流程就变成了这样：
 
-![image](./images/LoadBalancer-service.png)
+![image](./images/loadBalancer-service.png)
 
 相比于 NodePort Service，只需要将`type` 改成 `LoadBalancer`。
 ```yaml
@@ -464,7 +464,6 @@ spec:
 ```bash
 minikube addons enable ingress
 ```
-
 
 
 ## Deployment
