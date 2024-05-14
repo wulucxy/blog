@@ -324,7 +324,7 @@ $ deployment.apps/web created
 
 - ClusterIP：默认类型。只能通过集群内部 IP 访问 Service
 - NodePort：通过节点上的 IP 和端口（NodePort）可访问 Service
-- LoadBalance：负载均衡服务，通过节点外部服务转发到 Pod
+- LoadBalancer：负载均衡服务，通过节点外部服务转发到 Pod
 - HeadlessService：和 StatefulSet 相关，后续再讲
 
 #### ClusterIP Service
@@ -374,25 +374,98 @@ kubectl get service -o wide
 
 注意：NodePort Service 直接将 Node 暴露给了用户使用，需要保证访问安全性。
 
-#### LoadBalance Service
+#### LoadBalancer Service
 
-LoadBalance Service 是对 NodePort Service 的优化。NodePort Service 不支持负载均衡，一旦指定 Node 出现故障，那么外部访问请求就会无响应。
+LoadBalancer Service 是对 NodePort Service 的优化。NodePort Service 不支持负载均衡，一旦指定 Node 出现故障，那么外部访问请求就会无响应。
 
-LoadBalance 将 Service 放置到 Node 之前，确保外部发送的请求能够被转发到健康的节点上，此时项目流程就变成了这样：
+LoadBalancer 将 Service 放置到 Node 之前，确保外部发送的请求能够被转发到健康的节点上，此时项目流程就变成了这样：
 
-![image](./images/loadBalance-service.png)
+![image](./images/LoadBalancer-service.png)
 
-相比于 NodePort Service，只需要将`type` 改成 `LoadBalance` 即可。
+相比于 NodePort Service，只需要将`type` 改成 `LoadBalancer`。
 ```yaml
 spec:
-  type: LoadBalance          # 类型为 LoadBalance,
-  ports:                  # 定义端口. nodePort 映射到 port，port 再映射到 targetPort
-    - nodePort: 30880
-      port: 80
+  type: LoadBalancer      # 类型为 LoadBalancer,
+  ports:                  
+    - port: 8080          # service 端口
       name: web
       targetPort: 80
       protocol: TCP
 ```
+
+此时可以获取对应 service 对应的 EXTERNAL-IP：
+
+```bash
+kubectl get svc
+```
+
+展示结果类似如下：
+
+```
+NAME                  TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+kubernetes            ClusterIP      10.96.0.1        <none>        443/TCP        7d18h
+loadbalancer-service   LoadBalancer   10.107.142.179   <pending>     80:30881/TCP   13m
+```
+注意：在本地环境无法分配 EXTERNAL-IP，所以一直是 `pending` 状态。
+
+## Ingress
+
+Ingress 是对集群中不同服务提供统一负载均衡服务的对象。可以这样理解，Ingress 就是 Service 的 “service”。
+
+上一节 Service 对象我们提到的 LoadBalancer Service 也可以创建每个 Service 对应的负载均衡服务。
+
+但用户更希望提供一个全局负载均衡服务，然后通过访问 URL 将请求转发给不同的 Service，在 Kubenetes 里面对应的模块就是 Ingress。
+
+以下述 Ingress yaml 配置文件为例：
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minimal-ingress
+spec:
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - path: /tea
+        pathType: Prefix
+        backend:
+          service:
+            name: test-svc
+            port:
+               number: 80
+      - path: /coffee
+        pathType: Prefix
+        backend:
+          service:
+            name: test-coffee
+            port:
+             number: 80
+```
+
+`apiVersion`，`kind`，`metadata` 很好理解，略过不表。
+
+`spec` 定义了 Ingress 的访问规则：
+
+- 可选的 host。如果 host 未指定，则该规则适用于指定 IP 的所有流量。如果提供了 host，则 rules 适用于指定主机。
+- 路径列表（paths）。每个路径都有一个 `service.name` 和 `service.port` 的关联服务。基于路径匹配，对应的流量会引导到所引用的 Service。
+
+![image](./images/connecting-ingress-to-service.png)
+
+通过以上描述不难看出，所谓的 Ingress 对象，其实就是 Kubernetes 对于“反向代理”的一种抽象。
+
+有了 Ingress 这一层抽象，使用者只需要选择一个具体的 Ingress Controller，并部署到 Kubernetes 集群即可。
+
+### Ingress Controller
+
+以 miniKube 为例，启动内置的 nginx-ingress-controller: 
+
+```bash
+minikube addons enable ingress
+```
+
+
 
 ## Deployment
 
@@ -504,3 +577,4 @@ Events:
 2. ReplicaSet 控制 Pod（副本数）
 3. Service 提供 Pod 访问能力
 4. Pod 是 Container 的抽象层
+5. Ingress 对集群中不同服务提供统一负载均衡服务
