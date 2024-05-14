@@ -1,5 +1,5 @@
 ---
-title: "从 Docker 到云原生（02）— k8s"
+title: "从 Docker 到云原生（02）— k8s 核心概念"
 date: "2024-05-14"
 cta: "docker, container, cloud-native"
 spoiler: "Kubernets 核心概念入门（01）"
