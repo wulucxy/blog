@@ -1,5 +1,5 @@
 ---
-title: "RAG 实践入门（01）——RAG 概览"
+title: "RAG 实践入门"
 date: "2024-04-26"
 cta: "lowcode"
 spoiler: "RAG 实践入门"
@@ -86,7 +86,7 @@ text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=20
 splits = text_splitter.split_documents(docs)
 
 # Embed
-vectorstore = Chroma.from_documents(documents=splits, 
+vectorstore = Chroma.from_documents(documents=splits,
                                     embedding=OpenAIEmbeddings())
 
 retriever = vectorstore.as_retriever()
@@ -138,7 +138,7 @@ HNSW 全称 Hierarchical Navigable Small World graphs（分层-可导航-小世�
 # Index
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
-vectorstore = Chroma.from_documents(documents=splits, 
+vectorstore = Chroma.from_documents(documents=splits,
                                     embedding=OpenAIEmbeddings())
 
 
