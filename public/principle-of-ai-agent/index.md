@@ -72,7 +72,7 @@ Reasoning 能力则是一个长期目标，需要大模型产品持续去提升�
 
 ### 1. ReAct
 
-ReAct 是 Agent 设计模式中最早提出的，发表于 2022 年 10 月，在 ChatGPT 发布之前就提出了让 LLM 学习外公不公使用，具有相当高的开创性。
+ReAct 是 Agent 设计模式中最早提出的，发表于 2022 年 10 月，在 ChatGPT 发布之前就提出了让 LLM 学习外部工具使用，具有相当高的开创性。
 
 ![react](https://wangwei1237.github.io/LLM_in_Action/images/react.png)
 
@@ -80,7 +80,7 @@ ReAct 模式，是把 Reasoning(推理)，Action(行动) 与 LLM 结合起来的
 
 前面我们提到过 LLM 实际上是「系统 1」的思考方式，基于用户提问，快速给出答案，然后给出证明答案的证据。事实上，很多问题需要思考，提出若干解决思路，并一步一步得出最终答案，也就是「系统 2」的思考方式。
 
-ReAct 属于典型的「系统 2」思考方式。
+ReAct 属于典型「系统 2」的思考方式。
 
 ### Prompt
 
@@ -105,7 +105,7 @@ Final Answer: the final answer to the original input question
 Begin!
 
 Question: {input}
-Thought:{agent_scratchpad}
+Thought: {agent_scratchpad}
 ```
 
 首先，因为是一个通用的模板，所以给出了一个通用的解决问题的目标。
@@ -118,9 +118,9 @@ Thought:{agent_scratchpad}
 - Thought: 这是大模型擅长的领域，基于一个问题，给出解决问题的思考方向
 - Action: 从 `{tools}` 选择对应的工具
 - Action Input: 从问题中提取参数作为 `tool` 的输出
-- Observation: 观察 Action 输出
+- Observation: 观察 `Action` 输出
   ... (Thought/Action/Action Input/Observation 重复执行 N 次)
-- Final Answer: 基于 Observation, LLM 判断任务已完成，输出结果
+- Final Answer: 基于 `Observation`, LLM 判断任务已完成，输出结果
 
 最后将 `input（用户提问）`和 `agent_scratchpad(agent 执行记录)` 传递给大模型，开始本次命运的齿轮 ⚙ 转动。
 
