@@ -274,3 +274,147 @@ You need to analyze the result, and find more apis.
 It is possible that the tools do not have the relevant apis. In this case, you should call the Finish function. Do not make up the tool names or api names.
 `;
 ```
+
+## 实现方案
+
+基于 `Langgraph`，我们可以将 AnyTool 论文落地，产品流程如下：
+![diagram](./images/langtool_diagram.png)
+
+### 1. 定义分类、工具和 API
+
+```typescript
+export const CATEGORY_MAPPING = {
+  Data_and_Analytics: [
+    "Data",
+    "Database",
+    "Text_Analysis",
+  ],
+  Travel_and_Transportation: ['Travel', 'Transportation', 'Logistics', 'Location'],
+  //...
+};
+
+export const apiList = [{
+   {
+    "id": "c84af6be-804a-4965-93a5-cdbc29586f00",
+    "category_name": "Travel",
+    "tool_name": "Booking com",
+    "api_name": "Hotels Search",
+    "api_description": "string",
+    "required_parameters": [
+      {
+        "name": "string",
+        "type": "STRING",
+        "description": "",
+        "default": "popularity"
+      },
+    ],
+    "optional_parameters": [],
+    "method": "GET",
+    "api_url": "https://booking-com.p.rapidapi.com/v2/hotels/search"
+  },
+}]
+
+// 用户问题
+const query = `I'm organizing a charity event to raise awareness for animal rights. Can you recommend a book that highlights the importance of compassion towards animals? Additionally, provide me with a random word that symbolizes unity and empathy`
+```
+
+`CATEGORY_MAPPING` 定义了 category，此处为了精简不单独列出 tools。
+
+`apiList` 则包含了 `api` 描述，请求参数等，以及所关联的 `category_name` 和 `tool_name`。
+
+我们接下来要做的就是肝功能就用户的提问，从这 16000+ api 中大海捞针，挑选最适合的 api 并执行请求，获取我们想要的结果。
+
+是不是很有挑战性，接下来我们一步步来实现这个挑战。
+
+### 2. 定义图数据结构
+
+```typescript
+const graphChannels = {
+  // llm 实例
+  llm: null,
+  // 用户查询内容
+  query: null,
+  // 匹配类别
+  categories: null,
+  // 该类别下对应 api 列表
+  apis: null,
+  // 模型返回最佳匹配 api
+  bestApi: null,
+  // 模型从 query 提取参数
+  params: null,
+  // 执行 api 返回结果
+  response: null,
+};
+```
+
+### 3. 定义节点
+
+```typescript
+// 1. LLM 从用户提问中提取分类
+graph.addNode("extract_category_node", extractCategory);
+
+// 2. 从前一节点提取到 category 下的所有 api 列表
+graph.addNode("get_apis_node", getApis);
+
+// 3. 选择最合适的 api
+graph.addNode("select_api_node", selectApi);
+
+// 4. 获取 api 所需参数
+graph.addNode("extract_params_node", extractParameters);
+
+// 5. 补充 api 缺失必需参数
+graph.addNode("human_loop_node", requestParameters);
+
+// 6. 执行请求，获取最终结果
+graph.addNode("execute_request_node", createFetchRequest);
+```
+
+### 4. 定义连线
+
+```typescript
+// 1. 起点 => 提取分类节点
+graph.addEdge(START, "extract_category_node");
+
+// 2. 分类节点 => 分类接口接口
+graph.addEdge("extract_category_node", "get_apis_node");
+
+// 3. 分类节点 => 匹配api 节点
+graph.addEdge("get_apis_node", "select_api_node");
+
+// 4. 匹配 api 节点 => 抽取 api 参数节点
+graph.addEdge("select_api_node", "extract_params_node");
+
+// 条件判断连线
+graph.addConditionalEdges("extract_params_node", verifyParams);
+graph.addConditionalEdges("human_loop_node", verifyParams);
+
+// 5. 完成 API 请求，循环结束
+graph.addEdge("execute_request_node", END);
+
+const verifyParams = (
+  state: GraphState
+): "human_loop_node" | "execute_request_node" => {
+  const { bestApi, params } = state;
+  // 参数校验
+  const missingKeys = findMissingParams(
+    requiredParamsKeys,
+    extractedParamsKeys
+  );
+  // 如果必需参数校验不通过，先补充参数
+  if (missingKeys.length > 0) {
+    return "human_loop_node";
+  }
+  // 校验通过，执行请求
+  return "execute_request_node";
+};
+```
+
+### 5. 完整代码
+
+[链接]()
+
+## 总结
+
+现阶段 Agent 在生产环境的可靠性方面离传统软件还有不少距离，以 AutoGPT 为代表的 Autonomous Agent 不会是好的落地方向，因为太过强调 LLM 的自驱和自动化能力。理想的 Agent 需要具备的特性，是面向用户为中心的「human-in-loop」的交互方式，让使用者有可控的空间。
+
+Tool-use agent 就像人类打开了使用工具的新世界一样，帮助 LLM 扩展能力边界，从外部寻找合适工具的助手。随着大模型的持续进化和复杂推理能力的提升，未来 agent + tools 的结合肯定大有前景。
