@@ -173,7 +173,7 @@ AIMessage {
 
 可以看到，langchain 返回的数据结构和原始 OpenAI 结果类似。
 
-## multi-tools 实际用例
+## AnyTool
 
 在现实场景下，agent tools 使用场景要复杂很多：
 
@@ -181,15 +181,13 @@ AIMessage {
 2. 多工具调用，解决一个问题需要使用 N 个工具，需要多轮迭代实现
 3. 当 API 数量多且设计多工具时，关键点是如何有效地规划工具调用，并召回相关工具用于推理
 
-针对这个问题，[ToolLLM](https://github.com/beijixiong1/ToolLLM) 和 [AnyTool](https://github.com/dyabel/anytool) 这两篇 paper 提出了各自的解决方案，其中 AnyTool 是 ToolLLM 的改进版本，后续内容将主要围绕 AnyTool 展开。
+针对这个问题，[ToolLLM](https://github.com/beijixiong1/ToolLLM) 和 [AnyTool](https://github.com/dyabel/anytool) 这两篇 paper 提出了各自的解决方案，其中 AnyTool 是 ToolLLM 的改进版本，这里重点介绍 AnyTool。
 
-### 背景
-
-ToolLLM 使用了[RapidAPI Hub](https://rapidapi.com/hub) 开源的真实世界各类 API，通过初步测试以后，收集了 3451 Tools，总共 16464 APIs。
+AnyTool 使用了[RapidAPI Hub](https://rapidapi.com/hub) 开源的真实世界各类 API，通过初步测试以后，收集了 3451 Tools，总共 16464 APIs。
 
 ![rapid-api](./images/rapid-api.png)
 
-RapidAPI 自上而下分为 category（分类）、Tool（工具）、API 三层，category 包含多个 Tool，Tool 又有多个 API。例如 IMDB search 属于「Movies」分类，该 tools 下面又有 `search_by_title`，`get_detail` 等众多 API。这样的分类体系被用于后续「多工具（multi-tools）」调用的 prompt engineering 的依据。
+RapidAPI 自上而下分为 category（分类）、Tool（工具）、API 三层，category 包含多个 Tool，Tool 又有多个 API。例如 IMDB search 属于「Movies」分类，该 tools 下面又有 `search_by_title`，`get_detail` 等众多 API。这样的分类体系被用于后续多工具（multi-tools）调用 prompt engineering 的依据。
 
 AnyTool 更好地利用了 RapidAPI 的分层结构进行 API Pool 的召回。论文里使用的是 3 类 Agent 交互的方案，分别是：
 
