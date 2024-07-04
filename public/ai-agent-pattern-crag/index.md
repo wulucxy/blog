@@ -1,6 +1,6 @@
 ---
 title: "Agent 设计模式——CRAG"
-date: "2024-07-04"
+date: "2024-07-12"
 cta: "ai agent CRAG"
 spoiler: "Corrective RAG（可纠正的 RAG）"
 ---

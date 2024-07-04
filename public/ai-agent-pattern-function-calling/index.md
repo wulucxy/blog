@@ -323,4 +323,4 @@ main([new HumanMessage("tell me about the weather of hangzhou")]);
 
 2. function calling 并不会直接执行 tool，而是经过推理选择合适的 tool name 和 input 参数，tool 清晰明确的参数定义和描述，对于模型的识别能力很重要。
 
-3. 完成一次 function calling 至少要经历 model => tool => model 的循环，如果有多 tool 场景，链路会更复杂。
+3. # 完成一次 function calling 至少要经历 model => tool => model 的循环，如果有多 tool 场景，链路会更复杂。
