@@ -1,12 +1,16 @@
-## AnyTool
+## 背景
 
-在现实场景下，agent tools 使用场景要复杂很多：
+在 [function calling](/ai-agent-pattern-function-calling/) 一文中，我们介绍了作为 Agent 基石的 function calling 的原理，并给出了一个 chat agent 的实现。
+
+然而在现实场景下，agent tools 调用要复杂的多：
 
 1. 真实世界的 API 数量多且繁杂
 2. 多工具调用，解决一个问题需要使用 N 个工具，需要多轮迭代实现
 3. 当 API 数量多且设计多工具时，关键点是如何有效地规划工具调用，并召回相关工具用于推理
 
 针对这个问题，[ToolLLM](https://github.com/beijixiong1/ToolLLM) 和 [AnyTool](https://github.com/dyabel/anytool) 这两篇 paper 提出了各自的解决方案，其中 AnyTool 是 ToolLLM 的改进版本，这里重点介绍 AnyTool。
+
+## AnyTool
 
 AnyTool 使用了[RapidAPI Hub](https://rapidapi.com/hub) 开源的真实世界各类 API，通过初步测试以后，收集了 3451 Tools，总共 16464 APIs。
 
@@ -234,12 +238,8 @@ const verifyParams = (
 };
 ```
 
-### 5. 完整代码
-
-[链接]()
-
 ## 总结
 
-现阶段 Agent 在生产环境的可靠性方面离传统软件还有不少距离，以 AutoGPT 为代表的 Autonomous Agent 不会是好的落地方向，因为太过强调 LLM 的自驱和自动化能力。理想的 Agent 需要具备的特性，是面向用户为中心的「human-in-loop」的交互方式，让使用者有可控的空间。
+现阶段 Agent 在生产环境的可靠性方面离传统软件还有不少距离，以 AutoGPT 为代表的 Autonomous Agent 不会是好的落地方向，因为太过强调 LLM 的自驱和自动化能力。理想的 Agent 需要具备的特性，是面向用户为中心的「human-in-loop」的交互方式，让使用者有操作可控的空间。
 
 Tool-use agent 就像人类打开了使用工具的新世界一样，帮助 LLM 扩展能力边界，从外部寻找合适工具的助手。随着大模型的持续进化和复杂推理能力的提升，未来 agent + tools 的结合肯定大有前景。
