@@ -1,3 +1,10 @@
+---
+title: "Agent 设计模式——multiple tools"
+date: "2024-07-04"
+cta: "ai agent tool-use"
+spoiler: "多工具 agent 系统实例"
+---
+
 ## 背景
 
 在 [function calling](/ai-agent-pattern-function-calling/) 一文中，我们介绍了作为 Agent 基石的 function calling 的原理，并给出了一个 chat agent 的实现。
