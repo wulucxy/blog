@@ -1,5 +1,5 @@
 ---
-title: "持久化 Agent 设计"
+title: "持久化 Agent"
 date: "2024-07-24"
 cta: "ai agent"
 spoiler: "持久化 Agent"
@@ -60,7 +60,7 @@ const graph = workflow.compile({ checkpointer: memory });
 
 ### 运行实例
 
-首先我们给出一个不带 threadId 的例子，运行两个独立实例:
+首先我们给出一个不带 thread_id 的例子，运行两个独立实例:
 
 ```typescript
 for await (const { messages } of await graph.stream(
@@ -111,7 +111,7 @@ let config = { configurable: { thread_id: "conversation-num-1" } };
 async function main() {
   for await (const { messages } of await graph.stream(
     { messages: [["user", "Hi I'm Yu, niced to meet you."]] },
-    // 上一个 threadId 对应的消息列表会作为下一个实例消息列表
+    // 上一个 thread_id 对应的消息列表会作为下一个实例消息列表
     {
       ...config,
       streamMode: "values",
@@ -127,7 +127,7 @@ async function main() {
 
   for await (const { messages } of await graph.stream(
     { messages: [["user", "Remember my name?"]] },
-    // 上一个 threadId 对应的消息列表会作为下一个实例消息列表的初始消息注入
+    // 上一个 thread_id 对应的消息列表会作为下一个实例消息列表的初始消息注入
     {
       ...config,
       streamMode: "values",
@@ -153,3 +153,40 @@ Hello Yu, it's nice to meet you too. How can I assist you today?
 [ 'user', 'Remember my name?' ]
 Yes, I remember your name. It's Yu. How can I help you?
 ```
+
+### 状态管理
+
+基于 checkpointer 实现对话消息持久化后，我们可以在 agent 运行期间的的任意位置、任意时间实现图状态（state）的读取(read)、变更(update)、回滚(rewind)、打断(interupt)等操作。
+
+实现状态管理的两个核心方法:
+
+- getState: 获取当前 graph state values
+- updateState: 更新 graph state
+
+```typescript
+// let config = { configurable: { thread_id: "conversation-num-1" } };
+
+// 获取 thread_id 对应的历史聊天记录（checkpoint）
+let checkpoint = await graph.getState(config);
+// 打印内存中已保存的对话记录
+console.log(checkpoint.values);
+
+----
+
+{
+  messages: [
+    [ 'user', "Hi I'm Yu, niced to meet you." ],
+    AIMessage {
+      "content": "Hello Yu, it's nice to meet you too! How can I assist you today?",
+      "additional_kwargs": {
+        // ...
+      }
+    }
+  ]
+}
+```
+
+## 总结
+
+1. langraph 实现的 AI 应用可基于 `checkpointer` 实现用户多轮交互应用的持久化
+2. 运行时 AI 应用可共享同一 thread_id 的历史交互记录
