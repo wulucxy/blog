@@ -24,6 +24,8 @@ AI 应用的状态持久化（Persistence）可以让用户在多轮交互中共
 1. checkpointer: 当前对话保存的形式，比如 memory（内存）或 sqliteSaver（关系数据库）
 2. thread: 当前对话的唯一 ID，历史会话检索需要基于上下文同一 thread
 
+![checkpointer](./images//checkpointer.png)
+
 以 MessageGraph 为例，我们尝试实现 Persistence:
 
 ### 定义图结构
