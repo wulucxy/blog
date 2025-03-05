@@ -173,9 +173,7 @@ export interface SearchResult {
 
 ### 05 效果演示
 
-<video width="100%" controls>
-  <source src="./assets/demo.mp4" type="video/mp4" />
-</video>
+![image](./assets/demo.png)
 
 以上效果演示可以发现，通过联网搜索能力的加持，大模型突破了「知识盲区」。
 
